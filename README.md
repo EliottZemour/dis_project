@@ -1,1 +1,1 @@
-# dis_project
+# Distributed intelligent systems
