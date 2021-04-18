@@ -1,4 +1,4 @@
-function [x, y] = trajectory_1(x_0, y_0, theta_0)
+function [x, y, theta, time] = trajectory_1(x_0, y_0, theta_0)
 % 
 % Computes the ground true coordoniates of an e-puck during the first
 % trajectory. 
@@ -11,7 +11,8 @@ function [x, y] = trajectory_1(x_0, y_0, theta_0)
 %   simulation
 %
 % Return : 
-%   the coordinates at each time step of the e-puck
+%   the coordinates at each time step of the e-puck and the time array of
+%   the simulation
 
 % Simulation parameters
 wheel_radius = 0.02; % m
@@ -42,10 +43,10 @@ phi_dot_l = [6.28, 6.28, 6.28, 4, 6.28, 4, 6.28, 4, 0, 6.28, 4, 0, 6.28];
 for k=1:length(changes)-1
  
     % Time references
-    t_i = changes(i);
-    t_f = changes(i+1);
+    t_i = changes(k);
+    t_f = changes(k+1);
     
-    for t=t_i+time_step:t_f
+    for t=(t_i+time_step):time_step:t_f
         
         % Corresponding index
         index = int32(t/time_step) + 1;
@@ -57,13 +58,13 @@ for k=1:length(changes)-1
         theta_i = theta(index_i);
 
         % linear volcity of the e-puck
-        v = (phi_dot_r(i) + phi_dot_l(i))/2 * wheel_radius;
+        v = (phi_dot_r(k) + phi_dot_l(k))/2 * wheel_radius;
 
         % angular velocity of the e-puck
-        omega = (phi_dot_r(i) - phi_dot_l(i))/inter_wheel_dist * wheel_radius;
+        omega = (phi_dot_r(k) - phi_dot_l(k))/inter_wheel_dist * wheel_radius;
 
         % Coordinates
-        if phi_dot_r(i) == phi_dot_l(i) 
+        if phi_dot_r(k) == phi_dot_l(k) 
             % Straight line
             theta(index) = theta_i;
             x(index) = cos(theta(index))*v*(t-t_i) + x_i;
