@@ -8,6 +8,9 @@
 #include <webots/position_sensor.h>
 
 #include "trajectories.h"
+#include "odometry.h"
+
+#define TIME_INIT_ACC 2
 
 typedef struct 
 {
@@ -26,9 +29,23 @@ WbDeviceTag dev_acc;
 WbDeviceTag dev_left_encoder;
 WbDeviceTag dev_right_encoder;
 WbDeviceTag dev_left_motor; 
-WbDeviceTag dev_right_motor; 
+WbDeviceTag dev_right_motor;
+
+static measurement_t  _meas;
+static pose_t  _pose, _odo_acc, _odo_enc, _odo_enc_bonus;
+static pose_t  _pose_origin = {-2.9, 0.0, 0.0};
+
+
 
 void init_devices(int ts);
+void controller_compute_mean_acc();
+void controller_get_acc();
+
+/*
+Initializes gps sensor, accelerometer sensor,
+wheel encoders (position sensors), wheel motors.
+int ts is taken as wb_robot_get_basic_time_step()
+*/
 
 void init_devices(int ts) {
   dev_gps = wb_robot_get_device("gps");
@@ -51,19 +68,65 @@ void init_devices(int ts) {
   wb_motor_set_velocity(dev_right_motor, 0.0);
 }
 
+//====================================================
+//===================== MAIN =========================
+//====================================================
+
 int main() 
 {
   wb_robot_init();
   int time_step = wb_robot_get_basic_time_step();
   init_devices(time_step);
+  odo_reset(time_step);
   
   while (wb_robot_step(time_step) != -1)  {
   // Use one of the two trajectories.
+//    trajectory_1(dev_left_motor, dev_right_motor);
     trajectory_1(dev_left_motor, dev_right_motor);
-//    trajectory_2(dev_left_motor, dev_right_motor);
+    
+    controller_get_acc();
+    
+    if( wb_robot_get_time() < TIME_INIT_ACC )
+      {
+        controller_compute_mean_acc();
+      }
+    else
+      {
+        odo_compute_acc(&_odo_acc, _meas.acc, _meas.acc_mean);
+      }
+      
+    }
+}
+
+//====================================================
+//====================================================
+//====================================================
+
+
+void controller_compute_mean_acc()
+{
+  static int count = 0;
   
+  count++;
+  
+  if( count > 20 ) // Remove the effects of strong acceleration at the begining
+  {
+    for(int i = 0; i < 3; i++)  
+        _meas.acc_mean[i] = (_meas.acc_mean[i] * (count - 1) + _meas.acc[i]) / (double) count;
   }
   
+  if( count == (int) (TIME_INIT_ACC / (double) wb_robot_get_basic_time_step() * 1000) ) {
+    printf("mean acc : %g %g %g\n",_meas.acc_mean[0], _meas.acc_mean[1] , _meas.acc_mean[2]);
+    printf("Accelerometer initialization Done ! \n");
+  }
+}
+
+void controller_get_acc()
+{
+  // Call the function to get the accelerometer measurements.
+  const double * acc_values = wb_accelerometer_get_values(dev_acc);
+  // Copy the acc_values into the measurment structure (use memcpy)
+  memcpy(_meas.acc, acc_values, sizeof(_meas.acc));
   
-  
+  //printf("ROBOT acc : %g %g %g\n", _meas.acc[0], _meas.acc[1] , _meas.acc[2]);
 }

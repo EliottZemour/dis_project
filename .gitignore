@@ -1,0 +1,4 @@
+Initial_Material/controllers/localization_controller/build/
+*.DS_Store
+.Initial_Material/controllers/localization_controller/Makefile
+*.exe
