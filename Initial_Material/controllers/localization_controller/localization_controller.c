@@ -12,6 +12,7 @@
 
 #define TIME_INIT_ACC 2
 
+
 typedef struct 
 {
   double prev_gps[3];
@@ -31,15 +32,18 @@ WbDeviceTag dev_right_encoder;
 WbDeviceTag dev_left_motor; 
 WbDeviceTag dev_right_motor;
 
-static measurement_t  _meas;
-static pose_t  _pose, _odo_acc, _odo_enc, _odo_enc_bonus;
-static pose_t  _pose_origin = {-2.9, 0.0, 0.0};
 
+static measurement_t  _meas;
+static pose_t  _pose, _odo_acc, _odo_enc;
+static pose_t  _pose_origin = {-2.9, 0.0, 0.0};
+static FILE *fp;
 
 
 void init_devices(int ts);
 void controller_compute_mean_acc();
 void controller_get_acc();
+void controller_get_encoder();
+void controller_init_log(const char* filename);
 
 /*
 Initializes gps sensor, accelerometer sensor,
@@ -78,6 +82,7 @@ int main()
   int time_step = wb_robot_get_basic_time_step();
   init_devices(time_step);
   odo_reset(time_step);
+  controller_init_log("localization.csv");
   
   while (wb_robot_step(time_step) != -1)  {
   // Use one of the two trajectories.
@@ -86,6 +91,8 @@ int main()
     
     controller_get_acc();
     
+    controller_get_encoder();
+    
     if( wb_robot_get_time() < TIME_INIT_ACC )
       {
         controller_compute_mean_acc();
@@ -93,9 +100,16 @@ int main()
     else
       {
         odo_compute_acc(&_odo_acc, _meas.acc, _meas.acc_mean);
+        
+        odo_compute_encoders(&_odo_enc, _meas.left_enc - _meas.prev_left_enc, _meas.right_enc - _meas.prev_right_enc);
       }
       
-    }
+    controller_print_log(wb_robot_get_time());
+  
+  }
+
+  
+    return 0;
 }
 
 //====================================================
@@ -130,3 +144,51 @@ void controller_get_acc()
   
   //printf("ROBOT acc : %g %g %g\n", _meas.acc[0], _meas.acc[1] , _meas.acc[2]);
 }
+
+void controller_get_encoder()
+{
+  // Store previous value of the left encoder
+  _meas.prev_left_enc = _meas.left_enc;
+
+  _meas.left_enc = wb_position_sensor_get_value(dev_left_encoder);
+  
+  // Store previous value of the right encoder
+  _meas.prev_right_enc = _meas.right_enc;
+  
+  _meas.right_enc = wb_position_sensor_get_value(dev_right_encoder);
+  
+  //printf("ROBOT enc : %g %g\n", _meas.left_enc, _meas.right_enc);
+  
+}
+
+/**
+ * @brief      Log the usefull informations about the simulation
+ *
+ * @param[in]  time  The time
+ */
+void controller_print_log(double time)
+{
+
+  if( fp != NULL)
+  {
+    fprintf(fp, "%g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
+            time, _pose.x, _pose.y , _pose.heading, _meas.gps[0], _meas.gps[1], 
+      _meas.gps[2], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
+      _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
+  
+
+}
+}
+
+void controller_init_log(const char* filename)
+{
+
+  fp = fopen(filename,"w");
+  
+  
+    fprintf(fp, "time; pose_x; pose_y; pose_heading;  gps_x; gps_y; gps_z; acc_0; acc_1; acc_2; right_enc; left_enc; odo_acc_x; odo_acc_y; odo_acc_heading; odo_enc_x; odo_enc_y; odo_enc_heading; odo_enc_bonus_x; odo_enc_bonus_y; odo_enc_bonus_heading\n");
+  
+
+
+}
+
