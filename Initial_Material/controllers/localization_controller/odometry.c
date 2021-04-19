@@ -12,8 +12,8 @@
 
 /*VERBOSE_FLAGS*/
 #define VERBOSE_ODO_ENC_BONUS false     	// Print odometry values computed with wheel encoders (Bonus)
-#define VERBOSE_ODO_ENC false     			// Print odometry values computed with wheel encoders
-#define VERBOSE_ODO_ACC true    			// Print odometry values computed with accelerometer
+#define VERBOSE_ODO_ENC true     			// Print odometry values computed with wheel encoders
+#define VERBOSE_ODO_ACC false    			// Print odometry values computed with accelerometer
 //-----------------------------------------------------------------------------------//
 /*GLOBAL*/
 static double _T;
