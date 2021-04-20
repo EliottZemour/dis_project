@@ -186,7 +186,7 @@ void controller_init_log(const char* filename)
   fp = fopen(filename,"w");
   
   
-    fprintf(fp, "time; pose_x; pose_y; pose_heading;  gps_x; gps_y; gps_z; acc_0; acc_1; acc_2; right_enc; left_enc; odo_acc_x; odo_acc_y; odo_acc_heading; odo_enc_x; odo_enc_y; odo_enc_heading; odo_enc_bonus_x; odo_enc_bonus_y; odo_enc_bonus_heading\n");
+    fprintf(fp, "time; pose_x; pose_y; pose_heading;  gps_x; gps_y; gps_z; acc_0; acc_1; acc_2; right_enc; left_enc; odo_acc_x; odo_acc_y; odo_acc_heading; odo_enc_x; odo_enc_y; odo_enc_heading\n");
   
 
 
