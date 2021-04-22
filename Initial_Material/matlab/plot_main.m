@@ -64,12 +64,12 @@ xlim([data.time(1), data.time(end)]);ylim(y_lim + [-0.05,0.05]*(y_lim(2)-y_lim(1
 f = figure('Name','Webots : Odometry using accelerometer [m/s^2]');
 
 % Plot x : odometry vs ground truth (gps)
-plot(data.time, data.pose_x); hold on;
-plot(data.time, data.odo_acc_x);
-title('x trajectory : odometry vs ground truth (gps)');
+%plot(data.time, data.pose_x); hold on;
+plot(data.odo_acc_x, data.odo_acc_y);
+title('trajectory : odometry vs ground truth (gps)');
 legend('Ground Thruth : GPS', 'Odometry : Accelerometer');
-xlabel('Time [s]'); ylabel('x [m]');
-y_lim = [min([data.odo_acc_x;  data.pose_x]),max([data.odo_acc_x;  data.pose_x])];
+xlabel('x [m]'); ylabel('y [m]');
+y_lim = [min([data.odo_acc_y;  data.odo_acc_x]),max([data.odo_acc_y;  data.odo_acc_x])];
 xlim([data.time(1), data.time(end)]);ylim(y_lim + [-0.05,0.05]*(y_lim(2)-y_lim(1)));
 
 %% Part D : Compute and plot the odometry computed using the wheel encoders
@@ -124,7 +124,7 @@ f = figure('Name','Webots : Odometry using wheel encoders [Rad]');
 subplot(3,1,[1 2]);hold on;
 
 % Plot x -y plan : odometry vs ground truth (gps)
-plot(data.pose_x(2:end) , data.pose_y(2:end)); hold on;
+plot(data.gps_x(2:end) , data.gps_y(2:end)); hold on;
 plot(data.odo_enc_x , data.odo_enc_y);
 title('x -y plan : odometry vs ground truth (gps)');
 legend('Ground Thruth : GPS', 'Odometry : Wheel encoders');

@@ -32,19 +32,19 @@ WbDeviceTag dev_right_encoder;
 WbDeviceTag dev_left_motor; 
 WbDeviceTag dev_right_motor;
 
-
 static measurement_t  _meas;
-static pose_t  _pose, _odo_acc, _odo_enc;
-static pose_t  _pose_origin = {-2.9, 0.0, 0.0};
+static pose_t  _odo_acc, _odo_enc;
 static FILE *fp;
 
 
+
 void init_devices(int ts);
+void controller_get_gps();
 void controller_compute_mean_acc();
 void controller_get_acc();
 void controller_get_encoder();
 void controller_init_log(const char* filename);
-
+void controller_print_log(double time);
 /*
 Initializes gps sensor, accelerometer sensor,
 wheel encoders (position sensors), wheel motors.
@@ -53,7 +53,7 @@ int ts is taken as wb_robot_get_basic_time_step()
 
 void init_devices(int ts) {
   dev_gps = wb_robot_get_device("gps");
-  wb_gps_enable(dev_gps, 1000);
+  wb_gps_enable(dev_gps,1000);
   
   dev_acc = wb_robot_get_device("accelerometer");
   wb_accelerometer_enable(dev_acc, ts);
@@ -82,12 +82,14 @@ int main()
   int time_step = wb_robot_get_basic_time_step();
   init_devices(time_step);
   odo_reset(time_step);
-  controller_init_log("localization.csv");
   
+  controller_init_log("localization.csv");
   while (wb_robot_step(time_step) != -1)  {
   // Use one of the two trajectories.
 //    trajectory_1(dev_left_motor, dev_right_motor);
     trajectory_1(dev_left_motor, dev_right_motor);
+    
+    controller_get_gps();
     
     controller_get_acc();
     
@@ -116,6 +118,33 @@ int main()
 //====================================================
 //====================================================
 
+void controller_get_gps()
+{
+  // To Do : store the previous measurements of the gps (use memcpy)
+  memcpy(_meas.prev_gps, _meas.gps, sizeof(_meas.gps));
+  // To Do : get the positions from webots for the gps. Uncomment and complete the following line Note : Use _robot.gps
+  const double * gps_position = wb_gps_get_values(dev_gps);
+  // To Do : Copy the gps_position into the measurment structure (use memcpy)
+  memcpy(_meas.gps, gps_position, sizeof(_meas.gps));
+
+  //if(VERBOSE_GPS)
+    //printf("ROBOT gps is at position: %g %g %g\n", _meas.gps[0], _meas.gps[1], _meas.gps[2]);
+}
+
+
+double controller_get_heading()
+{
+  // To Do : implement your function for the orientation of the robot. Be carefull with the sign of axis y !
+  double delta_x = _meas.gps[0] - _meas.prev_gps[0];
+
+  double delta_y = -(_meas.gps[2] - _meas.prev_gps[2]);
+
+  // To Do : compute the heading of the robot ( use atan2 )
+  
+  double heading = atan2(delta_y, delta_x);
+  
+  return heading;
+}
 
 void controller_compute_mean_acc()
 {
@@ -171,9 +200,8 @@ void controller_print_log(double time)
 
   if( fp != NULL)
   {
-    fprintf(fp, "%g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
-            time, _pose.x, _pose.y , _pose.heading, _meas.gps[0], _meas.gps[1], 
-      _meas.gps[2], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
+    fprintf(fp, "%g;  %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
+            time, _meas.gps[0], _meas.gps[1], _meas.gps[2], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
       _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
   
 
@@ -186,9 +214,8 @@ void controller_init_log(const char* filename)
   fp = fopen(filename,"w");
   
   
-    fprintf(fp, "time; pose_x; pose_y; pose_heading;  gps_x; gps_y; gps_z; acc_0; acc_1; acc_2; right_enc; left_enc; odo_acc_x; odo_acc_y; odo_acc_heading; odo_enc_x; odo_enc_y; odo_enc_heading\n");
+    fprintf(fp, "time; gps_x; gps_y; gps_z; acc_0; acc_1; acc_2; right_enc; left_enc; odo_acc_x; odo_acc_y; odo_acc_heading; odo_enc_x; odo_enc_y; odo_enc_heading\n");
   
 
 
 }
-
