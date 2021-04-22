@@ -12,13 +12,13 @@
 
 /*VERBOSE_FLAGS*/
 #define VERBOSE_ODO_ENC_BONUS false     	// Print odometry values computed with wheel encoders (Bonus)
-#define VERBOSE_ODO_ENC true     			// Print odometry values computed with wheel encoders
+#define VERBOSE_ODO_ENC false     			// Print odometry values computed with wheel encoders
 #define VERBOSE_ODO_ACC false    			// Print odometry values computed with accelerometer
 //-----------------------------------------------------------------------------------//
 /*GLOBAL*/
 static double _T;
 
-static pose_t _odo_pose_acc, _odo_speed_acc, _odo_pose_enc, _odo_pose_enc_bonus;
+static pose_t _odo_pose_acc, _odo_speed_acc, _odo_pose_enc;
 //-----------------------------------------------------------------------------------//
 
 /**
@@ -98,42 +98,7 @@ void odo_compute_encoders(pose_t* odo, double Aleft_enc, double Aright_enc)
  * @param[in]  Aleft_enc   The delta left encoder
  * @param[in]  Aright_enc  The delta right encoder
  */
-void odo_compute_encoders_bonus(pose_t* odo, double Aleft_enc, double Aright_enc)
-{
-	// Rad to meter
-	Aleft_enc  *= WHEEL_RADIUS;
 
-	Aright_enc *= WHEEL_RADIUS;
-
-	// Compute forward speed and angular speed
-	double omega = ( Aright_enc - Aleft_enc ) / ( WHEEL_AXIS * _T );
-
-	double speed = ( Aright_enc + Aleft_enc ) / ( 2.0 * _T );
-
-	// Apply rotation (Body to World)
-	
-	// smaller integration step for the angle (1/2)
-	_odo_pose_enc_bonus.heading += omega * _T / 2.0;
-	
-	double a = _odo_pose_enc_bonus.heading;
-
-	double speed_wx = speed * cos(a);
-
-	double speed_wy = speed * sin(a);
-
-	// Integration : Euler method
-	_odo_pose_enc_bonus.x += speed_wx * _T;
-
-	_odo_pose_enc_bonus.y += speed_wy * _T;
-
-	// smaller integration step for the angle (2/2)
-	_odo_pose_enc_bonus.heading += omega * _T / 2.0;
-
-	memcpy(odo, &_odo_pose_enc_bonus, sizeof(pose_t));
-
-	if(VERBOSE_ODO_ENC_BONUS)
-    	printf("ODO with wheel encoders (Bonus): %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading) );
-}
 
 /**
  * @brief      Reset the odometry to zeros
@@ -149,7 +114,6 @@ void odo_reset(int time_step)
 
 	memset(&_odo_pose_enc, 0 , sizeof(pose_t));
 
-	memset(&_odo_pose_enc_bonus, 0 , sizeof(pose_t));
 
 	_T = time_step / 1000.0;
 }
