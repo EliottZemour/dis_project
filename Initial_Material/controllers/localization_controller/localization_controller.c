@@ -10,7 +10,7 @@
 #include "trajectories.h"
 #include "odometry.h"
 
-#define TIME_INIT_ACC 2
+#define TIME_INIT_ACC 1
 
 
 typedef struct 
@@ -120,6 +120,7 @@ int main()
 
 void controller_get_gps()
 {
+
   // To Do : store the previous measurements of the gps (use memcpy)
   memcpy(_meas.prev_gps, _meas.gps, sizeof(_meas.gps));
   // To Do : get the positions from webots for the gps. Uncomment and complete the following line Note : Use _robot.gps
@@ -127,8 +128,9 @@ void controller_get_gps()
   // To Do : Copy the gps_position into the measurment structure (use memcpy)
   memcpy(_meas.gps, gps_position, sizeof(_meas.gps));
 
-  //if(VERBOSE_GPS)
-    //printf("ROBOT gps is at position: %g %g %g\n", _meas.gps[0], _meas.gps[1], _meas.gps[2]);
+  _meas.gps[0] += 2.9 - 0.12342;
+  printf("ROBOT gps is at position: %g %g %g\n", _meas.gps[0], _meas.gps[1], _meas.gps[2]);
+
 }
 
 
@@ -148,7 +150,7 @@ double controller_get_heading()
 
 void controller_compute_mean_acc()
 {
-  static int count = 0;
+  static int count = 1;
   
   count++;
   
@@ -201,7 +203,9 @@ void controller_print_log(double time)
   if( fp != NULL)
   {
     fprintf(fp, "%g;  %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
-            time, _meas.gps[0], _meas.gps[1], _meas.gps[2], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
+
+            time, _meas.gps[0], -_meas.gps[2], _meas.gps[1], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
+
       _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
   
 
