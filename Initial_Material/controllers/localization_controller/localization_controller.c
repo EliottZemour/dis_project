@@ -127,8 +127,10 @@ void controller_get_gps()
   const double * gps_position = wb_gps_get_values(dev_gps);
   // To Do : Copy the gps_position into the measurment structure (use memcpy)
   memcpy(_meas.gps, gps_position, sizeof(_meas.gps));
+
   _meas.gps[0] += 2.9 - 0.12342;
   printf("ROBOT gps is at position: %g %g %g\n", _meas.gps[0], _meas.gps[1], _meas.gps[2]);
+
 }
 
 
@@ -201,7 +203,9 @@ void controller_print_log(double time)
   if( fp != NULL)
   {
     fprintf(fp, "%g;  %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
+
             time, _meas.gps[0], -_meas.gps[2], _meas.gps[1], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
+
       _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
   
 
