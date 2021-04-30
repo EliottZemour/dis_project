@@ -6,10 +6,10 @@
 #include <webots/gps.h>
 #include <webots/accelerometer.h>
 #include <webots/position_sensor.h>
-
+#include <webots/emitter.h>
 #include "trajectories.h"
 #include "odometry.h"
-
+#include "localization_controller.h"
 #define TIME_INIT_ACC 1
 
 
@@ -31,11 +31,12 @@ WbDeviceTag dev_left_encoder;
 WbDeviceTag dev_right_encoder;
 WbDeviceTag dev_left_motor; 
 WbDeviceTag dev_right_motor;
+WbDeviceTag emitter;	
 
 static measurement_t  _meas;
 static pose_t  _odo_acc, _odo_enc;
 static FILE *fp;
-
+static pose_t         _pose_origin = {-2.9, 0.0, 0.0};
 
 
 void init_devices(int ts);
@@ -70,6 +71,10 @@ void init_devices(int ts) {
   wb_motor_set_position(dev_right_motor, INFINITY);
   wb_motor_set_velocity(dev_left_motor, 0.0);
   wb_motor_set_velocity(dev_right_motor, 0.0);
+  
+  // Initialisation of the emitter node of the robot to send information to the supervisor
+  emitter = wb_robot_get_device("emitter");
+  if (emitter==0) printf("missing emitter\n");
 }
 
 //====================================================
@@ -78,44 +83,59 @@ void init_devices(int ts) {
 
 int main() 
 {
+  
   wb_robot_init();
   int time_step = wb_robot_get_basic_time_step();
   init_devices(time_step);
   odo_reset(time_step);
   
-  controller_init_log("localization.csv");
-  while (wb_robot_step(time_step) != -1)  {
-  // Use one of the two trajectories.
-//    trajectory_1(dev_left_motor, dev_right_motor);
-    trajectory_1(dev_left_motor, dev_right_motor);
-    
-    controller_get_gps();
-    
-    controller_get_acc();
-    
-    controller_get_encoder();
-    
-    if( wb_robot_get_time() < TIME_INIT_ACC )
-      {
-        controller_compute_mean_acc();
-      }
-    else
-      {
-        odo_compute_acc(&_odo_acc, _meas.acc, _meas.acc_mean);
-        
-        odo_compute_encoders(&_odo_enc, _meas.left_enc - _meas.prev_left_enc, _meas.right_enc - _meas.prev_right_enc);
-      }
-      
-    controller_print_log(wb_robot_get_time());
+  controller_init_log("localization.csv");   // Initialization of the .csv file
   
-  }
+  char buffer[255]; // Buffer for emitter
+  
+  while (wb_robot_step(time_step) != -1)  {
+
+
+
+             //    trajectory_2(dev_left_motor, dev_right_motor);
+            trajectory_1(dev_left_motor, dev_right_motor);
+    
+    
+            // Functions to measure data from devices
+            controller_get_gps();
+    
+            controller_get_acc();
+    
+            controller_get_encoder();
+    /
+            if( wb_robot_get_time() < TIME_INIT_ACC )
+                {
+                  controller_compute_mean_acc();
+                }
+            else
+                {
+                    // Computation of odometric coordinates at each time step, Function defined in odometry.c
+                    
+                   odo_compute_encoders(&_odo_enc, _meas.left_enc - _meas.prev_left_enc, _meas.right_enc - _meas.prev_right_enc);
+                   odo_compute_acc(&_odo_acc, _meas.acc, _meas.acc_mean);
+       
+                 }
+                
+                
+                // Part dedicated to printing of values to be sent to the Supervisor
+            sprintf(buffer,"%f %f %f %f %f %f %f %f %f %f",wb_robot_get_time(), _meas.gps[0], -_meas.gps[2], _meas.gps[1], 
+            _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
+            wb_emitter_send(emitter,buffer,strlen(buffer));
+            controller_print_log(wb_robot_get_time());
+  
+      }
 
   
     return 0;
 }
 
 //====================================================
-//====================================================
+//==================Get functions=====================
 //====================================================
 
 void controller_get_gps()
@@ -127,44 +147,10 @@ void controller_get_gps()
   const double * gps_position = wb_gps_get_values(dev_gps);
   // To Do : Copy the gps_position into the measurment structure (use memcpy)
   memcpy(_meas.gps, gps_position, sizeof(_meas.gps));
-
   _meas.gps[0] += 2.9 - 0.12342;
-  printf("ROBOT gps is at position: %g %g %g\n", _meas.gps[0], _meas.gps[1], _meas.gps[2]);
-
+  //printf("ROBOT gps is at position: %g %g %g\n", _meas.gps[0], _meas.gps[1], _meas.gps[2]);
 }
 
-
-double controller_get_heading()
-{
-  // To Do : implement your function for the orientation of the robot. Be carefull with the sign of axis y !
-  double delta_x = _meas.gps[0] - _meas.prev_gps[0];
-
-  double delta_y = -(_meas.gps[2] - _meas.prev_gps[2]);
-
-  // To Do : compute the heading of the robot ( use atan2 )
-  
-  double heading = atan2(delta_y, delta_x);
-  
-  return heading;
-}
-
-void controller_compute_mean_acc()
-{
-  static int count = 1;
-  
-  count++;
-  
-  if( count > 20 ) // Remove the effects of strong acceleration at the begining
-  {
-    for(int i = 0; i < 3; i++)  
-        _meas.acc_mean[i] = (_meas.acc_mean[i] * (count - 1) + _meas.acc[i]) / (double) count;
-  }
-  
-  if( count == (int) (TIME_INIT_ACC / (double) wb_robot_get_basic_time_step() * 1000) ) {
-    printf("mean acc : %g %g %g\n",_meas.acc_mean[0], _meas.acc_mean[1] , _meas.acc_mean[2]);
-    printf("Accelerometer initialization Done ! \n");
-  }
-}
 
 void controller_get_acc()
 {
@@ -192,6 +178,31 @@ void controller_get_encoder()
   
 }
 
+//====================================================
+//=================Acc initialisation=================
+//====================================================
+
+void controller_compute_mean_acc()
+{
+  static int count = 1;
+  
+  count++;
+  
+  if( count > 20 ) // Remove the effects of strong acceleration at the begining
+  {
+    for(int i = 0; i < 3; i++)  
+        _meas.acc_mean[i] = (_meas.acc_mean[i] * (count - 1) + _meas.acc[i]) / (double) count;
+  }
+  
+  if( count == (int) (TIME_INIT_ACC / (double) wb_robot_get_basic_time_step() * 1000) ) {
+    printf("mean acc : %g %g %g\n",_meas.acc_mean[0], _meas.acc_mean[1] , _meas.acc_mean[2]);
+    printf("Accelerometer initialization Done ! \n");
+  }
+}
+
+//====================================================
+//=================File related functions=============
+//====================================================
 /**
  * @brief      Log the usefull informations about the simulation
  *
@@ -203,14 +214,15 @@ void controller_print_log(double time)
   if( fp != NULL)
   {
     fprintf(fp, "%g;  %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
-
             time, _meas.gps[0], -_meas.gps[2], _meas.gps[1], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
-
       _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
   
 
 }
+
 }
+
+// Open the file and name the columns
 
 void controller_init_log(const char* filename)
 {
