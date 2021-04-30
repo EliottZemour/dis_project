@@ -10,7 +10,9 @@
 #include <webots/supervisor.h>
 #include <webots/receiver.h>
 
+
 #define FLOCK_SIZE	1		// Number of robots in flock
+
 #define TIME_STEP	16		// [ms] Length of time step
 
 WbNodeRef robs[1];		// Robots nodes
@@ -31,10 +33,12 @@ void reset(void) {
             receiver = wb_robot_get_device("receiver");
             wb_receiver_enable(receiver,16); // enables the receiver with a sampling period of 64ms
 	char rob[7] = "ROBOT1";
+
 	
 	/**
 	Get information from node fields for true positions
 	*/
+
 		robs[0] = wb_supervisor_node_get_from_def(rob);
 		robs_trans[0] = wb_supervisor_node_get_field(robs[0],"translation");
 		robs_rotation[0] = wb_supervisor_node_get_field(robs[0],"rotation");
@@ -64,6 +68,14 @@ void controller_print_log(double time)
 }
 }
 
+/**
+void compute_fitness_acc(float* fit) {
+
+
+	*fit =abs(loc[0]-_odo_acc.x)+abs(loc[1]-_odo_acc.y);
+	}
+		
+*/
 
 
 /** Function to be defined to calculate the performance metric
@@ -81,9 +93,11 @@ void compute_fitness_acc(float* fit) {
  */
  	float fit_acc =0;
 int main() 
+
 {	
 	char *inbuffer;
            float rob_time, rob_gpsx, rob_gpsy, rob_gpsz, rob_odo_accx,rob_odo_accy, rob_odo_acch, rob_odo_encx, rob_odo_ency, rob_odo_ench;
+
             
 	controller_init_log("pose.csv");
 	reset();
@@ -99,14 +113,12 @@ int main()
 			
 			controller_print_log(t/1000.0);				
 			
-			
-		
-			
+	
 			
 		}
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 			sscanf(inbuffer,"%f %f %f %f %f %f %f %f %f %f",&rob_time, &rob_gpsx, &rob_gpsy, &rob_gpsz, &rob_odo_accx, &rob_odo_accy, &rob_odo_acch, &rob_odo_encx, &rob_odo_ency, &rob_odo_ench);
-
+//printf pour tester les valeurs
 			printf("yo %f %f\n",rob_gpsy, loc[1]);
 			
 			wb_receiver_next_packet(receiver);
