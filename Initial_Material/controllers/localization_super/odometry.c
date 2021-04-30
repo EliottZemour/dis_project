@@ -32,33 +32,29 @@ static pose_t _odo_pose_acc, _odo_speed_acc, _odo_pose_enc;
  */
 void odo_compute_acc(pose_t* odo, const double acc[3], const double acc_mean[3])
 {
-	// Extraction of the heading from the wheel encoder method
 	double a = _odo_pose_enc.heading;
 	
-            // Removal of bias from initialization
+	// To Do : Compute the acceleration in frame A + remove biais (Assume 1-D motion)
 	double acc_wx = (acc[1] - acc_mean[1]);
 	double acc_wy = -(acc[0] - acc_mean[0]);
-
-	
-	// Calculation of scalar acceleration
-	double norm_acc= sqrt(pow(acc_wx,2.0)+pow(acc_wy,2.0));
-	
-	// Integration for speed determination and division according to axes
+           // printf("mean acc : %g %g %g\n",acc_mean[0], acc_mean[1] , acc_mean[2]);
+	// To Do : Implement your motion model (Assume 1-D motion)
+	double norm_acc= sqrt(pow(acc[1],2.0)+pow(acc_wy,2.0));
 	double speed= norm_acc * _T;
+	
 	double speed_wx = speed * cos(a);
+
             double speed_wy = speed * sin(a);
-            
-            // Integration for position determination
 	_odo_pose_acc.x += speed_wx * _T ;
 	_odo_pose_acc.y += speed_wy * _T;
             
-            // Setting the heading of the acc method with the encoder value
+            
            _odo_pose_acc.heading = a ;
             
 	memcpy(odo, &_odo_pose_acc, sizeof(pose_t));
 	
 	
- 	//printf("ODO with acceleration : %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading));
+ 		//printf("ODO with acceleration : %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading));
      	 	
 }
 
@@ -104,6 +100,13 @@ void odo_compute_encoders(pose_t* odo, double Aleft_enc, double Aright_enc)
     	printf("ODO with wheel encoders : %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading) );
 }
 
+/**
+ * @brief      Compute the odometry using the encoders. Use the motion model proposed in bonus question
+ *
+ * @param      odo         The odometry
+ * @param[in]  Aleft_enc   The delta left encoder
+ * @param[in]  Aright_enc  The delta right encoder
+ */
 
 
 /**
