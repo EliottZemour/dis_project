@@ -36,21 +36,20 @@ void odo_compute_acc(pose_t* odo, const double acc[3], const double acc_mean[3])
 	double a = _odo_pose_enc.heading;
 	
             // Removal of bias from initialization
-	double acc_wx = (acc[1] - acc_mean[1]);
-	double acc_wy = -(acc[0] - acc_mean[0]);
+	double acc_wx = (acc[1]-acc_mean[1]);
+	double acc_wy = -(acc[0]-acc_mean[0]);
 
-	
+	double norm_acc = sqrt(pow(acc_wx,2.0)+pow(acc_wy,2.0));
 	// Calculation of scalar acceleration
-	double norm_acc= sqrt(pow(acc_wx,2.0)+pow(acc_wy,2.0));
+	double speed = norm_acc * _T;
 	
 	// Integration for speed determination and division according to axes
-	double speed= norm_acc * _T;
-	double speed_wx = speed * cos(a);
-            double speed_wy = speed * sin(a);
+          _odo_speed_acc.x = speed * cos(a);
+          _odo_speed_acc.y = speed * sin(a);
             
             // Integration for position determination
-	_odo_pose_acc.x += speed_wx * _T ;
-	_odo_pose_acc.y += speed_wy * _T;
+	_odo_pose_acc.x += _odo_speed_acc.x * _T ;
+	_odo_pose_acc.y += _odo_speed_acc.y * _T ;
             
             // Setting the heading of the acc method with the encoder value
            _odo_pose_acc.heading = a ;

@@ -29,9 +29,9 @@ WbDeviceTag dev_gps;
 WbDeviceTag dev_acc;
 WbDeviceTag dev_left_encoder;
 WbDeviceTag dev_right_encoder;
-WbDeviceTag dev_left_motor; 
+WbDeviceTag dev_left_motor;
 WbDeviceTag dev_right_motor;
-WbDeviceTag emitter;	
+WbDeviceTag emitter;
 
 static measurement_t  _meas;
 static pose_t  _odo_acc, _odo_enc;
@@ -107,7 +107,7 @@ int main()
             controller_get_acc();
     
             controller_get_encoder();
-    /
+    
             if( wb_robot_get_time() < TIME_INIT_ACC )
                 {
                   controller_compute_mean_acc();
@@ -184,7 +184,7 @@ void controller_get_encoder()
 
 void controller_compute_mean_acc()
 {
-  static int count = 1;
+  static int count = 0;
   
   count++;
   
@@ -204,7 +204,7 @@ void controller_compute_mean_acc()
 //=================File related functions=============
 //====================================================
 /**
- * @brief      Log the usefull informations about the simulation
+ * @brief      Log the useful informations about the simulation
  *
  * @param[in]  time  The time
  */

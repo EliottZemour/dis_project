@@ -57,7 +57,7 @@ f = figure('Name','Webots : Odometry using wheel encoders [Rad]');
 subplot(3,1,[1 2]);hold on;
 
 % Plot x -y plan : odometry vs ground truth (gps)
-plot(data.gps_x(2:end) , data.gps_z(2:end)); hold on;
+plot(data.gps_x(3:end) , data.gps_y(3:end)); hold on;
 plot(data.odo_enc_x , data.odo_enc_y);
 title('x -y plan : odometry vs ground truth (gps)');
 legend('Ground Thruth : GPS', 'Odometry : Wheel encoders');
@@ -67,12 +67,3 @@ y_lim = [min([data.odo_enc_y;  data.gps_y]),max([data.odo_enc_y;  data.gps_y])];
 xlim(x_lim + [-0.05,0.05]*(x_lim(2)-x_lim(1)));ylim(y_lim + [-0.05,0.05]*(y_lim(2)-y_lim(1)));
 axis equal;
 
-% Plot heading : odometry vs ground truth (gps)
-subplot(3,1,3);hold on;
-plot(data.time ,  data.pose_heading); hold on;
-plot(data.time , wrapToPi(data.odo_enc_heading));
-title('Heading : odometry vs ground truth (gps)');
-legend('Ground Thruth : GPS', 'Odometry : Wheel encoders');
-xlabel('Time [s]'); ylabel('heading [Rad]');
-y_lim = [min([wrapToPi(data.odo_enc_heading);  data.pose_heading]),max([wrapToPi(data.odo_enc_heading);  data.pose_heading])];
-xlim([data.time(1), data.time(end)]);ylim(y_lim + [-0.05,0.05]*(y_lim(2)-y_lim(1)));
