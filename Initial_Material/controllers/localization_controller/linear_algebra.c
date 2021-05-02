@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+
 #include "linear_algebra.h"
 
 // -----------MULTIPLICATION FUNCTION ----------
@@ -19,8 +20,28 @@ void mult_mat(int NA, int L, int MB, double A[NA][L], double B[L][MB], double C[
 		for(int j = 0; j<MB;j++)
 		{
 			C[i][j] = 0;
-			for(int k = 0; k<L;k++)
+			for(int k = 0; k<L;k++){
 				C[i][j] += A[i][k]*B[k][j];
+			}
+		}
+}
+
+/**
+ * @brief Generic matrix multiplication function  C = A*B
+ * @param[in] NA 	nb of lines of A (and C)
+ * @param[in] L 	nb of lines of B and nb of column of A
+ * @param[in] MB	nb of column of B (and C)
+ * @param[in] A		array of size NAxMA
+ * @param[in] B 	array of size NBxMB
+ * @param[out]C		array of size NAxMB, C = A*B
+ * 
+ */
+void mult_scal(int N, int M, double A[N][M], double x)
+{
+	for(int i = 0; i<N;i++)
+		for(int j = 0; j<M;j++)
+		{
+			A[i][j] = A[i][j]*x;
 		}
 }
 
@@ -161,9 +182,6 @@ void cofactor(int N, double A[N][N], double C[N][N])
 						continue;
 					}
 				}
-			printf("i,j: %i %i\n",i,j);
-			printf("%f %f\n",cofactor[0][1],cofactor[0][1]);
-			printf("%f %f\n",cofactor[1][0],cofactor[1][1]);
 			C[i][j] = sign*det(N-1,cofactor);
 			sign = -sign;
 		}
