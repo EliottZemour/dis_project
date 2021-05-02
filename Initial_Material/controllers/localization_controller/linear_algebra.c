@@ -1,36 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "linear_algebra.h"
-//-----------------------------------------------------------------------------------//
-/*MACRO*/
-#define CATCH(X,Y)      X = X || Y
-#define CATCH_ERR(X,Y)  la_error(X, Y, __LINE__, __FILE__)
-
-
-// -----------ERROR FUNCTION ----------
-/**
- * @brief      Do an error test if the result is true write the message in the stderr.
- *
- * @param[in]  test     The error test to run
- * @param[in]  message  The error message
- *
- * @return     true if there is an error
- */
-bool la_error(bool err, const char * message, int line, const char * fileName)
-{
-  if (err) 
-  {
-    char buffer[256];
-
-    sprintf(buffer, "file : %s, line : %d,  error : %s", fileName, line, message);
-
-    fprintf(stderr,buffer);
-
-    return(true);
-  }
-
-  return false;
-}
 
 // -----------MULTIPLICATION FUNCTION ----------
 /**
