@@ -10,7 +10,11 @@
 #include <webots/distance_sensor.h>
 #include <webots/emitter.h>
 #include <webots/receiver.h>
-#include "trajectories.h"
+
+/* Added supervisor for the metric */
+#include <webots/supervisor.h>
+/* =============================== */
+
 
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          350     // Minimum sensibility value
@@ -61,7 +65,20 @@ int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received
 float migr[2] = {-10,0};	        // Migration vector
 char* robot_name;
 
-float theta_robots[FLOCK_SIZE];
+
+WbNodeRef robs[FLOCK_SIZE];	    // Robots nodes
+WbFieldRef robs_trans[FLOCK_SIZE];    // Robots translation fields
+WbFieldRef robs_rotation[FLOCK_SIZE]; // Robots rotation fields
+
+float loc[FLOCK_SIZE][3];	    // Location of everybody in the flock (supervisor info)
+
+#define fit_cluster_ref 0.03
+#define fit_orient_ref 1.0
+
+
+int offset;				// Offset of robots number
+float migrx, migrz;			// Migration vector
+float orient_migr; 			// Migration orientation
 
 /*
  * Reset the robot's devices and get its ID
@@ -95,6 +112,14 @@ static void reset() {
 	//Reading the robot's name. Pay attention to name specification when adding robots to the simulation!
 	sscanf(robot_name,"epuck%d",&robot_id_u); // read robot id from the robot's name
 	robot_id = robot_id_u%FLOCK_SIZE;	  // normalize between 0 and FLOCK_SIZE-1
+	
+	char rob[7] = "epuck0";
+	for (i=0;i<FLOCK_SIZE;i++) {
+		sprintf(rob,"epuck%d",i+offset);
+		//robs[i] = wb_supervisor_node_get_from_def(rob);
+		//robs_trans[i] = wb_supervisor_node_get_field(robs[i],"translation");
+		//robs_rotation[i] = wb_supervisor_node_get_field(robs[i],"rotation");
+	}
   
 	for(i=0; i<FLOCK_SIZE; i++) {
 		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
@@ -104,6 +129,31 @@ static void reset() {
         
         migr[0] = -10;
         migr[1] = 0;
+}
+
+
+/*
+ * Compute performance metric.
+ */
+void compute_fitness(float* fit_c, float* fit_o) {
+	*fit_c = 0; *fit_o = 0;
+	// Compute performance indices
+	// Based on distance of the robots compared to the threshold and the deviation from the perfect angle towards
+	// the migration goal
+	float angle_diff;
+	int i; int j;
+	for (i=0;i<FLOCK_SIZE;i++) {
+		for (j=i+1;j<FLOCK_SIZE;j++) {	
+			// Distance measure for each pair ob robots
+			*fit_c += fabs(sqrtf(powf(loc[i][0]-loc[j][0],2)+powf(loc[i][1]-loc[j][1],2))-RULE1_THRESHOLD*2);
+		}
+
+		// Angle measure for each robot
+		angle_diff = fabsf(loc[i][2]-orient_migr);
+		*fit_o += angle_diff > M_PI ? 2*M_PI-angle_diff : angle_diff;
+	}
+	*fit_c /= FLOCK_SIZE*(FLOCK_SIZE+1)/2;
+	*fit_o /= FLOCK_SIZE;
 }
 
 
@@ -245,76 +295,6 @@ void reynolds_rules() {
 
 
 /*
- *  Update speed according to Reynold's rules
- */
-//void reynolds_rules() {
-	//int i, j, k;			// Loop counters
-	//float rel_avg_loc[2] = {0,0};	// Flock average positions
-	//float rel_avg_speed[2] = {0,0};	// Flock average speeds
-	//float cohesion[2] = {0,0};
-	//float dispersion[2] = {0,0};
-	//float consistency[2] = {0,0};
-	
-	///* Compute averages over the whole flock */
-          //for (i=0; i<FLOCK_SIZE; ++i) {
-              //if (i==robot_id)
-                //continue;
-      	//for (j=0;j<2;j++) {
-                  //rel_avg_speed[j] += relative_speed[i][j];
-                  //rel_avg_loc[j] += relative_pos[i][j];
-                //}
-          //}
-    
-    	//for (j=0;j<2;j++) {
-            //rel_avg_speed[j] /= (FLOCK_SIZE-1);
-            //rel_avg_loc[j] /= (FLOCK_SIZE-1);
-          //}
-	
-	///* Rule 1 - Aggregation/Cohesion: move towards the center of mass */
-          ////if (sqrt(pow(rel_avg_loc[0],2.0)+pow(rel_avg_loc[1],2.0)) > RULE1_THRESHOLD) {
-            //for (j=0;j<2;j++) {	
-              //cohesion[j] = rel_avg_loc[j];
-    	 //}
-	////}
-
-	///* Rule 2 - Dispersion/Separation: keep far enough from flockmates */
-	//for (k=0;k<FLOCK_SIZE;k++) {
-    	//if (k != robot_id){        // Loop on flockmates only
-              //// If neighbor k is too close (Euclidean distance)
-              //float distance = sqrt(pow(relative_pos[k][0],2)+pow(relative_pos[k][1],2));
-              //if(distance < RULE2_THRESHOLD){
-                  //for (j=0;j<2;j++) {
-                      //dispersion[j] -= 1/relative_pos[k][j]; // Relative distance to k
-                  //}
-               //}
-          //}
-          //}
-  
-	///* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
-	//for (j=0;j<2;j++) {
-		//consistency[j] = rel_avg_speed[j];
-         //}
-
-         ////aggregation of all behaviors with relative influence determined by weights
-	//for (j=0;j<2;j++) {
-		//speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
-		//speed[robot_id][j] +=  dispersion[j] * RULE2_WEIGHT;
-		//speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
-	//}
-	//speed[robot_id][1] *= -1; //y axis of webots is inverted
-        
-	////move the robot according to some migration rule
-	//if(MIGRATORY_URGE == 0){
-	  //speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
-	  //speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
-	//} else {
-	////printf("my pos: %g %g\n", my_position[0], my_position[1]);
-		//speed[robot_id][0] += (migr[1]-my_position[0]) * MIGRATION_WEIGHT;
-		//speed[robot_id][1] -= (migr[0]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
-	//}
-//}
-
-/*
  *  each robot sends a ping message, so the other robots can measure relative range and bearing to the sender.
  *  the message contains the robot's name
  *  the range and bearing will be measured directly out of message RSSI and direction
@@ -442,6 +422,23 @@ int main(){
 		msr_w = msr*MAX_SPEED_WEB/1000;
 		wb_motor_set_velocity(dev_left_motor, msl_w);
 		wb_motor_set_velocity(dev_right_motor, msr_w);
+		
+		
+                  	float fit_cluster; // Performance metric for aggregation
+            	float fit_orient;  // Performance metric for orientation
+            	
+            	for (i=0;i<FLOCK_SIZE;i++) {
+			// Get data
+			loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[0]; // X
+			loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[2]; // Z
+			loc[i][2] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3]; // THETA
+		}
+		
+		//Compute and normalize fitness values
+		compute_fitness(&fit_cluster, &fit_orient);
+		fit_cluster = fit_cluster_ref/fit_cluster;
+		fit_orient = 1-fit_orient/M_PI;
+		printf("Flocking Performance: %f\n", fit_cluster);	
     
 		// Continue one step
 		wb_robot_step(TIME_STEP);
