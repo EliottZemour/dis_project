@@ -71,7 +71,7 @@ void add_mat(int N, int M, double A[N][M], double B[N][M], double C[N][M])
  * @return	  noninv	true if the matrix is not inversible
  * 
  */
-bool inv(int N, double A[N][N], double B[N][N])
+int inv(int N, double A[N][N], double B[N][N])
 {
 	double C[N][N], Ct[N][N];
 	double d;
@@ -80,17 +80,17 @@ bool inv(int N, double A[N][N], double B[N][N])
 	
 	if (d < tol)
 	{
-		CATCH_ERR(d<tol,"matrix not inversible");
-		return false;
+		//CATCH_ERR(d<tol,"matrix not inversible");
+		return 0;
 	}
 	cofactor(N,A,C);
 	transpose(N,N,C,Ct);
 	
-	for(int i; i<N;i++)
-		for(int j;j<N;j++)
+	for(int i=0; i<N;i++)
+		for(int j=0;j<N;j++)
 			B[i][j] = Ct[i][j]/d;
 	
-	return true;
+	return 1;
 		
 }
 
@@ -198,7 +198,7 @@ void cofactor(int N, double A[N][N], double C[N][N])
  */
 void transpose(int N, int M, double A[N][M], double At[M][N])
 {
-	for(int i; i<N;i++)
-		for(int j; j<M;j++)
+	for(int i=0; i<N;i++)
+		for(int j=0; j<M;j++)
 			At[j][i] = A[i][j];
 }

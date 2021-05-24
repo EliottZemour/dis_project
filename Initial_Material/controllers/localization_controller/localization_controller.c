@@ -10,6 +10,7 @@
 #include "trajectories.h"
 #include "odometry.h"
 #include "localization_controller.h"
+#include "kalman.h"
 #define TIME_INIT_ACC 1
 
 
@@ -34,9 +35,9 @@ WbDeviceTag dev_right_motor;
 WbDeviceTag emitter;
 
 static measurement_t  _meas;
-static pose_t  _odo_acc, _odo_enc;
+static pose_t  _odo_acc, _odo_enc, _kalman_enc, _kalman_acc;
 static FILE *fp;
-static pose_t         _pose_origin = {-2.9, 0.0, 0.0};
+static pose_t         _pose_origin = {-(2.9 - 0.12342), 0.0, 0.0};
 
 
 void init_devices(int ts);
@@ -72,6 +73,8 @@ void init_devices(int ts) {
   wb_motor_set_velocity(dev_left_motor, 0.0);
   wb_motor_set_velocity(dev_right_motor, 0.0);
   
+  controller_init_log("localization.csv");   // Initialization of the .csv file
+  
   // Initialisation of the emitter node of the robot to send information to the supervisor
   emitter = wb_robot_get_device("emitter");
   if (emitter==0) printf("missing emitter\n");
@@ -83,24 +86,19 @@ void init_devices(int ts) {
 
 int main() 
 {
-  
   wb_robot_init();
   int time_step = wb_robot_get_basic_time_step();
   init_devices(time_step);
   odo_reset(time_step);
-  
-  controller_init_log("localization.csv");   // Initialization of the .csv file
-  
+  kalman_reset(time_step);
+   
   char buffer[255]; // Buffer for emitter
   
   while (wb_robot_step(time_step) != -1)  {
+  
+            //    trajectory_2(dev_left_motor, dev_right_motor);
+                   trajectory_1(dev_left_motor, dev_right_motor);
 
-
-
-             //    trajectory_2(dev_left_motor, dev_right_motor);
-            trajectory_1(dev_left_motor, dev_right_motor);
-    
-    
             // Functions to measure data from devices
             controller_get_gps();
     
@@ -114,19 +112,24 @@ int main()
                 }
             else
                 {
-                    // Computation of odometric coordinates at each time step, Function defined in odometry.c
+                   
+                   // Computation of odometric coordinates at each time step, Function defined in odometry.c
                     
                    odo_compute_encoders(&_odo_enc, _meas.left_enc - _meas.prev_left_enc, _meas.right_enc - _meas.prev_right_enc);
                    odo_compute_acc(&_odo_acc, _meas.acc, _meas.acc_mean);
+                   kalman_compute_enc(&_kalman_enc, _meas.left_enc - _meas.prev_left_enc, _meas.right_enc - _meas.prev_right_enc, _meas.gps);
+                   kalman_compute_acc(&_kalman_acc, _meas.acc, _meas.acc_mean, _meas.gps);
        
                  }
                 
                 
                 // Part dedicated to printing of values to be sent to the Supervisor
-            sprintf(buffer,"%f %f %f %f %f %f %f %f %f %f",wb_robot_get_time(), _meas.gps[0], -_meas.gps[2], _meas.gps[1], 
-            _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
+            sprintf(buffer,"%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",wb_robot_get_time(), _meas.gps[0], -_meas.gps[2], _meas.gps[1], 
+            _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading, _kalman_enc.x, _kalman_enc.y, _kalman_enc.heading,
+            _kalman_acc.x, _kalman_acc.y, _kalman_acc.heading);
             wb_emitter_send(emitter,buffer,strlen(buffer));
             controller_print_log(wb_robot_get_time());
+
   
       }
 
@@ -147,7 +150,11 @@ void controller_get_gps()
   const double * gps_position = wb_gps_get_values(dev_gps);
   // To Do : Copy the gps_position into the measurment structure (use memcpy)
   memcpy(_meas.gps, gps_position, sizeof(_meas.gps));
-  _meas.gps[0] += 2.9 - 0.12342;
+  
+  _meas.gps[0] -= _pose_origin.x;
+  _meas.gps[1] -= _pose_origin.y;
+  _meas.gps[2] -= _pose_origin.heading;
+
   //printf("ROBOT gps is at position: %g %g %g\n", _meas.gps[0], _meas.gps[1], _meas.gps[2]);
 }
 
@@ -213,9 +220,10 @@ void controller_print_log(double time)
 
   if( fp != NULL)
   {
-    fprintf(fp, "%g;  %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
+    fprintf(fp, "%g;  %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
             time, _meas.gps[0], -_meas.gps[2], _meas.gps[1], _meas.acc[0], _meas.acc[1], _meas.acc[2], _meas.right_enc, _meas.left_enc, 
-      _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading);
+      _odo_acc.x, _odo_acc.y, _odo_acc.heading, _odo_enc.x, _odo_enc.y, _odo_enc.heading, _kalman_enc.x, _kalman_enc.y, _kalman_enc.heading,
+      _kalman_acc.x, _kalman_acc.y, _kalman_acc.heading);
   
 
 }
@@ -230,7 +238,7 @@ void controller_init_log(const char* filename)
   fp = fopen(filename,"w");
   
   
-    fprintf(fp, "time; gps_x; gps_y; gps_z; acc_0; acc_1; acc_2; right_enc; left_enc; odo_acc_x; odo_acc_y; odo_acc_heading; odo_enc_x; odo_enc_y; odo_enc_heading\n");
+    fprintf(fp, "time; gps_x; gps_y; gps_z; acc_0; acc_1; acc_2; right_enc; left_enc; odo_acc_x; odo_acc_y; odo_acc_heading; odo_enc_x; odo_enc_y; odo_enc_heading; kalman_enc_x; kalman_enc_y; kalman_enc_heading; kalman_acc_x; kalman_acc_y; kalman_acc_heading\n");
   
 
 

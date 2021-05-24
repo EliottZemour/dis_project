@@ -38,27 +38,84 @@ void odo_compute_acc(pose_t* odo, const double acc[3], const double acc_mean[3])
             // Removal of bias from initialization
 	double acc_wx = (acc[1]-acc_mean[1]);
 	double acc_wy = -(acc[0]-acc_mean[0]);
-
+	
+/*
 	double norm_acc = sqrt(pow(acc_wx,2.0)+pow(acc_wy,2.0));
 	// Calculation of scalar acceleration
 	double speed = norm_acc * _T;
 	
 	// Integration for speed determination and division according to axes
-          _odo_speed_acc.x = speed * cos(a);
-          _odo_speed_acc.y = speed * sin(a);
+          _odo_speed_acc.x += speed * cos(a);
+          _odo_speed_acc.y += speed * sin(a);
+          
+          double speedx = acc_wx * _T;
+          double speedy = acc_wy * _T;
+          static double x = 0;
+          x+= speedx * _T;
+          static double y = 0;
+          y+=speedy * _T;
+          
             
             // Integration for position determination
 	_odo_pose_acc.x += _odo_speed_acc.x * _T ;
 	_odo_pose_acc.y += _odo_speed_acc.y * _T ;
-            
+*/            
+
+           double norm_acc = sqrt(pow(acc_wx,2.0)+pow(acc_wy,2.0));
+	double dspeed = norm_acc * _T;
+	
+           double dvx = dspeed * cos(a);
+           double dvy = dspeed * sin(a);
+           
+           //double dvx = acc_wx * _T;
+           //double dvy = acc_wy * _T;
+           
+           _odo_speed_acc.x += dvx;
+           _odo_speed_acc.y += dvy;
+           
+           double speed = sqrt(pow(_odo_speed_acc.x,2.0)+pow(_odo_speed_acc.y,2.0));
+           double dl = speed * _T;
+           
+           double vx = speed * cos(a);
+           double vy = speed * sin(a); 
+           
+           double dx__ = vx * _T;
+           double dy__ = vy * _T;
+           
+           double dx_ = dl * cos(a);
+           double dy_ = dl * sin(a);
+           
+           double dx = _odo_speed_acc.x * _T;
+           double dy = _odo_speed_acc.y * _T;
+           
+           double cx = dx_/dx;
+           double cy = dy_/dy;
+           
+           _odo_pose_acc.x += dx__;
+           _odo_pose_acc.y += dy__;
+           
             // Setting the heading of the acc method with the encoder value
            _odo_pose_acc.heading = a ;
             
 	memcpy(odo, &_odo_pose_acc, sizeof(pose_t));
 	
 	
- 	//printf("ODO with acceleration : %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading));
-     	 	
+	printf("ODO with acceleration : \t x:%g\t y:%g\t h:%g\n", odo->x , odo->y , RAD2DEG(odo->heading));
+	printf("ODO with acceleration_ :\t dx:%g\t dy:%g\t cx:%g\t cy:%g\n", dx , dy, cx, cy);
+	printf("ODO with acceleration_ :\t dx_:%g\t dy_:%g\t dl:%g\n", dx_ , dy_, dl);
+	printf("ODO with acceleration_ :\t dx__:%g\t dy__:%g\t dl:%g\n", dx__ , dy__, dl);
+	printf("ODO with acceleration__ :\t vx:%g\t vy:%g\t v:%g\n", _odo_speed_acc.x , _odo_speed_acc.y, speed);
+	printf("ODO with acceleration__ :\t vx:%g\t vy:%g\t v:%g\n", vx , vy, speed);
+	printf("ODO with acceleration___ :\t dvx:%g\t dvy:%g\t dv:%g\n", dvx , dvy, dspeed);
+	//printf("ODO with acceleration____ : %g %g\n", acc_wx, acc_wy);
+	
+	/*
+ 	printf("ODO with acceleration : %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading));
+ 	printf("ODO with acceleration_ : %g %g %g %g %g\n", x , y , RAD2DEG(odo->heading), cos(a), sin(a));
+ 	printf("ODO with acceleration__ : %g %g %g %g\n", _odo_speed_acc.x, _odo_speed_acc.y, speed, _T);
+ 	printf("ODO with acceleration___ : %g %g %g %g\n", speedx, speedy, speed, _T);
+           printf("ODO with acceleration____ : %g %g %g %g\n", acc_wx, acc_wy, norm_acc, _T);
+           */
 }
 
 
@@ -99,8 +156,8 @@ void odo_compute_encoders(pose_t* odo, double Aleft_enc, double Aright_enc)
 
 	memcpy(odo, &_odo_pose_enc, sizeof(pose_t));
 
-	if(VERBOSE_ODO_ENC)
     	printf("ODO with wheel encoders : %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading) );
+    	printf("ODO with wheel encoders_ : %g %g %g %g\n", speed, speed_wx , speed_wy , _T);
 }
 
 
