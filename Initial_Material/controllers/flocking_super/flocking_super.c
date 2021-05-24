@@ -73,32 +73,40 @@ void compute_pair_matrix() {
 
 void compute_flock_center() {
     int i;
+    float n = (float) FLOCK_SIZE;
     for (i=0; i< FLOCK_SIZE; i++) {
         center[0] += loc[i][0];
         center[1] += loc[i][1];
     }
-    center[0] /= FLOCK_SIZE;
-    center[1] /= FLOCK_SIZE;
+    center[0] /= n;
+    center[1] /= n;
 }
 
 void compute_orient_metric() {
       o_metric = 0.0;
       int i,j,k;
       float Hdiff;
+      float n = (float) N_PAIRS;
       for (k=0; k<N_PAIRS; k++) {
           i = pair[k][0];
           j = pair[k][1];
           Hdiff = ( loc[i][2] -  loc[j][2] );
           Hdiff = Hdiff > M_PI ? 2*M_PI-Hdiff : Hdiff; 
-          o_metric -= fabsf(Hdiff)/M_PI;
+          Hdiff = Hdiff < -M_PI ? 2*M_PI+Hdiff : Hdiff; 
+          //printf("Hdiff/pi  = %f\n", fabsf(Hdiff)/M_PI);
+          o_metric += fabsf(Hdiff)/M_PI;
       }
-      o_metric = 1 - o_metric/N_PAIRS;
+      //printf("npairs = %f\n", n);
+      //printf("o_metric = %f\n", o_metric);
+      //printf("sum/npairs = %f\n", (o_metric/(float) N_PAIRS));
+      o_metric = 1 - o_metric/n;  
 }
 
 void compute_dist_metric() {
       dfl_metric = 0.0;
       int i,j,k;
       float denominator = 1.0; 
+      float n = (float) N_PAIRS;
           
       for (i=0; i<FLOCK_SIZE; i++) {
           denominator += (sqrtf(powf(loc[i][0]-center[0],2.0) + powf(loc[i][1]-center[1],2.0)))/FLOCK_SIZE;
@@ -110,8 +118,9 @@ void compute_dist_metric() {
           i = pair[k][0];
           j = pair[k][1];
           delta_x = sqrtf(powf(loc[i][0]-loc[j][0],2.0) + powf(loc[i][1]-loc[j][1],2.0));
-          dfl_metric += MIN(delta_x/0.3, 1/powf(1.3+delta_x,2.0))/N_PAIRS;
+          dfl_metric += MIN(delta_x/0.14, 1/powf(1.14+delta_x,2.0))/n;
       }  
+      //printf("denominator = %f\n", denominator);
       dfl_metric /= denominator;
 }
 
@@ -131,6 +140,7 @@ void compute_veloc_metric() {
 int main(int argc, char *args[]) {
 	int i;	// Index
            //printf("just got here");
+	t = 0;
 	offset = 0.0;
 	migrx = 0;
 	migrz = -10;
@@ -153,7 +163,7 @@ int main(int argc, char *args[]) {
 		
 	for(;;) {
 		wb_robot_step(TIME_STEP);
-		if (t % 10 == 0) {
+		//if (t % 16 == 0) {
 			center_old[0] = center[0];
 			center_old[1] = center[1];
 			for (i=0;i<FLOCK_SIZE;i++) {
@@ -168,8 +178,12 @@ int main(int argc, char *args[]) {
 			compute_veloc_metric();
 			
 			fit_cluster = o_metric * dfl_metric * v_metric;
+			printf("==========================================\n");
+			printf("metric v[t] = %f\n", v_metric);
+			printf("metric dfl[t] = %f\n", dfl_metric);
+			printf("metric o[t] = %f\n", o_metric);
 			printf("time:%d, Topology Performance: %f\n", t, fit_cluster);			
-		}
+		//}
 		t += TIME_STEP;
 	}
 }
