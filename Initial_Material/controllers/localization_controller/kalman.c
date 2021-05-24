@@ -71,26 +71,17 @@ static double R[4][4] ={
             
               
 static double Q[2][2] ={
-                {0.005, 0},
-                {0, 0.005}
+                {0.05, 0},
+                {0, 0.05}
               }; 
   
-          //Covariance matrix
-static double Cov[4][4] ={
-              {0.00001,  0,  0,  0},
-              {0,  0.00001,  0,  0},
-              {0,  0,  0.00001,  0},
-              {0,  0,  0,  0.00001}
-            };   
-          
-          //Kalman Matrix
+            //Kalman Matrix
 static double K[4][2]={
               {0,0},
               {0,0},
               {0,0},
               {0,0},
-            };
-             
+  };
             
 //-----------------------------------------------------------------------------------//
 /*FUNCTIONS*/
@@ -115,13 +106,13 @@ void kalman_reset(int time_step)
 	B_acc[2][0] = _T;
 	B_acc[3][1] = _T;
 	
-	R[0][0] = 0.0005*_T;
-	R[1][1] = 0.0005*_T;
-	R[2][2] = 0.0005*_T;
-	R[3][3] = 0.0005*_T;
+	R[0][0] = 0.05*_T;
+	R[1][1] = 0.05*_T;
+	R[2][2] = 0.05*_T;
+	R[3][3] = 0.05*_T;
 	
 	transpose(4,4,A,At);  
-	transpose(2,4,C,Ct); 
+	transpose(2,4,C,Ct);
 }
 
 /**
@@ -143,6 +134,15 @@ void kalman_compute_acc(pose_t* kalman, const double acc[3], const double acc_me
   count++;
   
   static double X[4][1] = {{0}, {0}, {0}, {0}}; //initial conditions
+            //Covariance matrix
+  static double Cov[4][4] ={
+              {0.001,  0,  0,  0},
+              {0,  0.001,  0,  0},
+              {0,  0,  0.001,  0},
+              {0,  0,  0,  0.001}
+            };   
+            
+             
   double norm_acc = sqrt(pow(acc_wx,2.0)+pow(acc_wy,2.0));
   double a = _kalman_pose_enc.heading;
   double U[2][1] = {{norm_acc * cos(a)}, {norm_acc * sin(a)}};
@@ -158,36 +158,56 @@ void kalman_compute_acc(pose_t* kalman, const double acc[3], const double acc_me
   double aux22[2][2]; 
   double aux21[2][1]; 
   
+  //printM(4,1,X);
+  //printM(4,4,Cov);
+  
   //X_new  
   mult_mat(4,4,1,A,X,X_new);
+  //printM(4,1,X_new);
   mult_mat(4,2,1,B_acc,U,aux41);
+  //printM(4,1,aux41);
   
   double dspeed = sqrt(pow(aux41[2][0],2.0)+pow(aux41[3][0],2.0));
   
   add_mat(4,1,X_new,aux41,X_new);
+  //printM(4,1,X_new);
   
   double speed = sqrt(pow(X_new[2][0],2.0)+pow(X_new[3][0],2.0));
   
   X_new[2][0] = speed * cos(a);
   X_new[3][0] = speed * sin(a);
+  
+  //printM(4,1,X_new);
     
   //Cov_new
   mult_mat(4,4,4,Cov, At, aux44);
+  //printM(4,4,aux44);
+  
   mult_mat(4,4,4,A, aux44, Cov_new);
+  //printM(4,4,Cov_new);
    
   add_mat(4,4,Cov_new,R,Cov_new);
+  //printM(4,4,Cov_new);
   
   if(count%n == 0){
     
     mult_mat(4,4,2,Cov_new,Ct,aux42);
+    //printM(4,2,aux42);
     mult_mat(2,4,2,C, aux42, aux22);
+    //printM(2,2,aux22);
    
-    add_mat(2,2,aux22,Q,aux22);
+    add_mat(2,2,aux22,Q,aux22);  
+    //printM(2,2,aux22);
+    
     if(inv(2,aux22, aux22)){
+    
+      //printM(2,2,aux22);
     
       //Kalman matrix
       mult_mat(4,2,2,Ct,aux22,aux42);
+      //printM(4,2,aux42);
       mult_mat(4,4,2,Cov_new, aux42, K);
+      //printM(4,2,K);
       
       //X_new
       mult_mat(2,4,1,C,X_new,aux21);
@@ -197,17 +217,24 @@ void kalman_compute_acc(pose_t* kalman, const double acc[3], const double acc_me
       mult_mat(4,2,1,K,aux21,aux41);
       
       add_mat(4,1,X_new, aux41, X_new);
+      //printM(4,1,X_new);
       
       //Cov_new
       mult_mat(4,2,4,K,C,aux44);
+      //printM(4,4,aux44);
       mult_scal(4,4,aux44,-1);
       add_mat(4,4,I,aux44,aux44);
+      //printM(4,4,aux44);
       
       mult_mat(4,4,4,aux44,Cov_new,Cov_new);
+      //printM(4,4,Cov_new);
       
-      printf("GPS : %g %g\n", Z[0][0] , Z[1][0]);
+      //printf("GPS : %g %g\n", Z[0][0] , Z[1][0]);
+      
     }
   }
+  
+  
   
   for(int i=0;i<4;++i){
     X[i][0]=X_new[i][0];
@@ -230,11 +257,19 @@ void kalman_compute_acc(pose_t* kalman, const double acc[3], const double acc_me
 	
   double speed_ = sqrt(pow(X[2][0],2.0)+pow(X[3][0],2.0));
   
+  
+  /*
   printf("Kalman with acceleration :\t x:%g\t y:%g\t h:%g\n", kalman->x , kalman->y , RAD2DEG(kalman->heading));
 
   printf("Kalman with acceleration__ :\t vx:%g\t vy:%g\t v:%g\n", X[2][0] , X[3][0], speed_);
   printf("Kalman with acceleration_ :\t dvx:%g\t dvy:%g\t dv:%g\n", aux41[2][0] , aux41[3][0], dspeed);
-  printf("GPS : %g %g\n \n", gps[0], -gps[2]);  
+  */
+  //printM(4,1,X_new);
+  //printM(4,4,Cov_new);
+  
+  //printf("GPS : %g %g\n \n", gps[0], -gps[2]);  
+  
+  
 } 
 
 /**
@@ -257,6 +292,14 @@ void kalman_compute_enc(pose_t* kalman, double Aleft_enc, double Aright_enc, con
   count++;
   
   static double X[4][1] = {{0}, {0}, {0}, {0}}; //initial conditions
+            //Covariance matrix
+static double Cov[4][4] ={
+              {0.00001,  0,  0,  0},
+              {0,  0.00001,  0,  0},
+              {0,  0,  0.00001,  0},
+              {0,  0,  0,  0.00001}
+            };   
+            
   double U[2][1] = {{Aleft_enc}, {Aright_enc}};
   double Z[2][1] = {{gps[0]}, {-gps[2]}};
   
@@ -325,6 +368,12 @@ void kalman_compute_enc(pose_t* kalman, double Aleft_enc, double Aright_enc, con
   for(int i=0;i<4;++i){
     X[i][0]=X_new[i][0];
   }
+  // Cov=Cov_new  MISSING!!!
+  for (int i=0; i<4; ++i){
+    for (int j= 0; j<4; ++j){    
+      Cov[i][j] = Cov_new[i][j];
+    }
+  }
   
   _kalman_pose_enc.x = X_new[0][0];
   _kalman_pose_enc.y = X_new[1][0];
@@ -335,6 +384,6 @@ void kalman_compute_enc(pose_t* kalman, double Aleft_enc, double Aright_enc, con
   
   memcpy(kalman, &_kalman_pose_enc, sizeof(pose_t));
 	
-  printf("Kalman with encoder : %g %g %g\n", kalman->x , kalman->y , RAD2DEG(kalman->heading));  
+  //printf("Kalman with encoder : %g %g %g\n", kalman->x , kalman->y , RAD2DEG(kalman->heading));  
   printf("Time managment : %g %d %d\n",wb_robot_get_time(), count, n);  
  } 

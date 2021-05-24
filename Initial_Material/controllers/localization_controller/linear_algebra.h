@@ -8,5 +8,6 @@ void mult_mat(int NA, int L, int MB, double A[NA][L], double B[L][MB], double C[
 void mult_scal(int N, int M, double A[N][M], double x);
 int inv(int N, double A[N][N], double B[N][N]);
 double det(int N, double A[N][N]);
+void printM(int NL, int NC, double M[NL][NC]);
 
 #endif

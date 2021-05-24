@@ -105,7 +105,7 @@ void odo_compute_acc(pose_t* odo, const double acc[3], const double acc_mean[3])
 	printf("ODO with acceleration_ :\t dx_:%g\t dy_:%g\t dl:%g\n", dx_ , dy_, dl);
 	printf("ODO with acceleration_ :\t dx__:%g\t dy__:%g\t dl:%g\n", dx__ , dy__, dl);
 	printf("ODO with acceleration__ :\t vx:%g\t vy:%g\t v:%g\n", _odo_speed_acc.x , _odo_speed_acc.y, speed);
-	printf("ODO with acceleration__ :\t vx:%g\t vy:%g\t v:%g\n", vx , vy, speed);
+	printf("ODO with acceleration__ :\t vx_:%g\t vy_:%g\t v:%g\n", vx , vy, speed);
 	printf("ODO with acceleration___ :\t dvx:%g\t dvy:%g\t dv:%g\n", dvx , dvy, dspeed);
 	//printf("ODO with acceleration____ : %g %g\n", acc_wx, acc_wy);
 	
@@ -156,8 +156,8 @@ void odo_compute_encoders(pose_t* odo, double Aleft_enc, double Aright_enc)
 
 	memcpy(odo, &_odo_pose_enc, sizeof(pose_t));
 
-    	printf("ODO with wheel encoders : %g %g %g\n", odo->x , odo->y , RAD2DEG(odo->heading) );
-    	printf("ODO with wheel encoders_ : %g %g %g %g\n", speed, speed_wx , speed_wy , _T);
+    	printf("ODO with wheel encoders :\t x:%g\t y:%g\t h:%g\n", odo->x , odo->y , RAD2DEG(odo->heading) );
+    	printf("ODO with wheel encoders_ :\t vx:%g\t vy:%g\t v:%g\n", speed_wx, speed_wy , speed);
 }
 
 
