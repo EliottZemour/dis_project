@@ -13,7 +13,7 @@
 #include "trajectories.h"
 
 #define NB_SENSORS	  8	  // Number of distance sensors
-#define MIN_SENS          350     // Minimum sensibility value
+#define MIN_SENS          150     // Minimum sensibility value
 #define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         800     // Maximum speed
 /*Webots 2018b*/
@@ -22,18 +22,19 @@
 #define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  16	  // [ms] Length of time step
 
+
 #define AXLE_LENGTH 		0.057	// Distance between wheels of robot (meters)
 #define SPEED_UNIT_RADS	0.00628	// Conversion factor from speed unit to radian per second
 #define WHEEL_RADIUS		0.020	// Wheel radius (meters)
 #define DELTA_T		0.016	// Timestep (seconds)
 
 #define MARGINAL_THRESHOLD  0.6       // Robots only flock with the neighbors which are closer than this threshold
-#define RULE1_THRESHOLD     0.40      // Threshold to activate aggregation rule. default 0.20
+#define RULE1_THRESHOLD     0.3      // Threshold to activate aggregation rule. default 0.20
 #define RULE1_WEIGHT        0.99      // Weight of aggregation rule. default 0.6/10
-#define RULE2_THRESHOLD     0.01      // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.05      // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.15/10) // Weight of dispersion rule. default 0.02/10
-#define RULE3_WEIGHT        (0.05/10) // Weight of consistency rule. default 1.0/10
-#define MIGRATION_WEIGHT    (0.03/10) // Wheight of attraction towards the common goal. default 0.01/10
+#define RULE3_WEIGHT        (0.15/10) // Weight of consistency rule. default 1.0/10
+#define MIGRATION_WEIGHT    (0.05/10) // Wheight of attraction towards the common goal. default 0.01/10
 #define MIGRATORY_URGE 1              // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -44,6 +45,12 @@ WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 
 int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // for obstacle avoidance
+
+//static float l_weight[NB_SENSORS] = {-1, -1.75, -0.2, 0, 0, 0.2, 1.75, 1};
+//static float r_weight[NB_SENSORS] = {1, 1.75, 0.2, 0, 0, -0.2, -1.75, -1};
+
+//static float l_weight[NB_SENSORS] = {8, 12, 8, 0, 0, -8, -12, -8};
+//static float r_weight[NB_SENSORS] = {-8, -12, -8, 0, 0, 8, 12, 8};
 
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
 WbDeviceTag receiver;		// Handle for the receiver node
@@ -58,7 +65,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
 int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received
-float migr[2] = {-10,0};	        // Migration vector
+float migr[2] = {10,0};	        // Migration vector
 char* robot_name;
 
 float theta_robots[FLOCK_SIZE];
@@ -102,8 +109,8 @@ static void reset() {
   
         printf("Reset: robot %d\n",robot_id_u);
         
-        migr[0] = -10;
-        migr[1] = 0;
+        migr[0] = -5;//-10;
+        migr[1] = -10;
 }
 
 
@@ -237,82 +244,13 @@ void reynolds_rules() {
 	  speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
 	} else {
 	//printf("my pos: %g %g\n", my_position[0], my_position[1]);
-		speed[robot_id][0] += (migr[1]-my_position[0]) * MIGRATION_WEIGHT;
-		speed[robot_id][1] -= (migr[0]-my_position[1]) * MIGRATION_WEIGHT; // y axis of webots is inverted
+		speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
+		speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; // y axis of webots is inverted
 	}
 }
 
 
 
-/*
- *  Update speed according to Reynold's rules
- */
-//void reynolds_rules() {
-	//int i, j, k;			// Loop counters
-	//float rel_avg_loc[2] = {0,0};	// Flock average positions
-	//float rel_avg_speed[2] = {0,0};	// Flock average speeds
-	//float cohesion[2] = {0,0};
-	//float dispersion[2] = {0,0};
-	//float consistency[2] = {0,0};
-	
-	///* Compute averages over the whole flock */
-          //for (i=0; i<FLOCK_SIZE; ++i) {
-              //if (i==robot_id)
-                //continue;
-      	//for (j=0;j<2;j++) {
-                  //rel_avg_speed[j] += relative_speed[i][j];
-                  //rel_avg_loc[j] += relative_pos[i][j];
-                //}
-          //}
-    
-    	//for (j=0;j<2;j++) {
-            //rel_avg_speed[j] /= (FLOCK_SIZE-1);
-            //rel_avg_loc[j] /= (FLOCK_SIZE-1);
-          //}
-	
-	///* Rule 1 - Aggregation/Cohesion: move towards the center of mass */
-          ////if (sqrt(pow(rel_avg_loc[0],2.0)+pow(rel_avg_loc[1],2.0)) > RULE1_THRESHOLD) {
-            //for (j=0;j<2;j++) {	
-              //cohesion[j] = rel_avg_loc[j];
-    	 //}
-	////}
-
-	///* Rule 2 - Dispersion/Separation: keep far enough from flockmates */
-	//for (k=0;k<FLOCK_SIZE;k++) {
-    	//if (k != robot_id){        // Loop on flockmates only
-              //// If neighbor k is too close (Euclidean distance)
-              //float distance = sqrt(pow(relative_pos[k][0],2)+pow(relative_pos[k][1],2));
-              //if(distance < RULE2_THRESHOLD){
-                  //for (j=0;j<2;j++) {
-                      //dispersion[j] -= 1/relative_pos[k][j]; // Relative distance to k
-                  //}
-               //}
-          //}
-          //}
-  
-	///* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
-	//for (j=0;j<2;j++) {
-		//consistency[j] = rel_avg_speed[j];
-         //}
-
-         ////aggregation of all behaviors with relative influence determined by weights
-	//for (j=0;j<2;j++) {
-		//speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
-		//speed[robot_id][j] +=  dispersion[j] * RULE2_WEIGHT;
-		//speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
-	//}
-	//speed[robot_id][1] *= -1; //y axis of webots is inverted
-        
-	////move the robot according to some migration rule
-	//if(MIGRATORY_URGE == 0){
-	  //speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
-	  //speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
-	//} else {
-	////printf("my pos: %g %g\n", my_position[0], my_position[1]);
-		//speed[robot_id][0] += (migr[1]-my_position[0]) * MIGRATION_WEIGHT;
-		//speed[robot_id][1] -= (migr[0]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
-	//}
-//}
 
 /*
  *  each robot sends a ping message, so the other robots can measure relative range and bearing to the sender.
@@ -395,17 +333,25 @@ int main(){
 		/* Braitenberg */
 		for(i=0;i<NB_SENSORS;i++) {
 			distances[i]=wb_distance_sensor_get_value(ds[i]); //Read sensor values
+
 			sum_sensors += distances[i]; // Add up sensor values
 			max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
 
 			// Weighted sum of distance sensor values for Braitenburg vehicle
 			bmsr += e_puck_matrix[i] * distances[i];
 			bmsl += e_puck_matrix[i+NB_SENSORS] * distances[i];
+			
+			//bmsr += (r_weight[i]) * distances[i];
+			//bmsl += (l_weight[i]) * distances[i];
 		}
 
 		// Adapt Braitenberg values (empirical tests)
 		bmsl/=MIN_SENS; bmsr/=MIN_SENS;
-		bmsl+=150; bmsr+=150;
+		//if (robot_id == 1) {
+  		//printf("bmsl = %d\n", bmsl);
+  		//}
+		bmsl+=100; bmsr+=50;
+		//bmsl*=10; bmsr*=10;
               
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot

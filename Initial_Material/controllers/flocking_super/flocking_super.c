@@ -140,6 +140,7 @@ void compute_veloc_metric() {
 int main(int argc, char *args[]) {
 	int i;	// Index
            //printf("just got here");
+            
 	t = 0;
 	offset = 0.0;
 	migrx = 0;
@@ -178,11 +179,11 @@ int main(int argc, char *args[]) {
 			compute_veloc_metric();
 			
 			fit_cluster = o_metric * dfl_metric * v_metric;
-			printf("==========================================\n");
-			printf("metric v[t] = %f\n", v_metric);
-			printf("metric dfl[t] = %f\n", dfl_metric);
-			printf("metric o[t] = %f\n", o_metric);
-			printf("time:%d, Topology Performance: %f\n", t, fit_cluster);			
+			//printf("==========================================\n");
+			//printf("metric v[t] = %f\n", v_metric);
+			//printf("metric dfl[t] = %f\n", dfl_metric);
+			//printf("metric o[t] = %f\n", o_metric);
+			//printf("time:%d, Topology Performance: %f\n", t, fit_cluster);			
 		//}
 		t += TIME_STEP;
 	}
