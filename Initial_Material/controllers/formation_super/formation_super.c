@@ -45,6 +45,8 @@ double good_rp[ROBOTS][2] = { {0.0,0.0}, {-0.15,-0.15}, {0.0,-0.30}, {0.15,-0.15
 
 float dfo_metric, v_metric; // The elements to multiply for the formation metric
 
+float dbl_nrobots = (float) ROBOTS; // float version of nrobots for division in metric
+
 void reset(void) {
 	wb_robot_init();
 
@@ -71,7 +73,7 @@ void compute_dist_metric() {
 	for (i=1; i<ROBOTS; i++) {
 		dfo_metric += sqrt(pow(rel_x[i-1]-good_rp[i][0],2) + pow(rel_z[i-1]-good_rp[i][1],2));
 	}
-	dfo_metric = 1.0 + dfo_metric / (ROBOTS-1);
+	dfo_metric = 1.0 + dfo_metric / (dbl_nrobots-1);
 	dfo_metric = 1.0 / dfo_metric;
 }
 
@@ -81,8 +83,8 @@ void compute_formation_center() {
         center[0] += loc[i][0];
         center[1] += loc[i][1];
     }
-    center[0] /= ROBOTS;
-    center[1] /= ROBOTS;
+    center[0] /= dbl_nrobots;
+    center[1] /= dbl_nrobots;
 }
 
 void compute_veloc_metric() {
