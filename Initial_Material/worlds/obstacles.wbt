@@ -1,4 +1,4 @@
-#VRML_SIM R2019b utf8
+#VRML_SIM R2021a utf8
 WorldInfo {
   info [
     "Description"
@@ -6,6 +6,7 @@ WorldInfo {
     "Date: DD MMM YYYY"
   ]
   basicTimeStep 16
+  coordinateSystem "NUE"
 }
 Viewpoint {
   orientation -0.9931345111565514 -0.11262694456245013 -0.03160718444222321 1.03351
@@ -519,10 +520,15 @@ DEF rock Solid {
   }
 }
 DEF SUPERVISOR Robot {
+  children [
+    Emitter {
+      channel 1
+    }
+  ]
   controller ""
   supervisor TRUE
 }
-DEF epuck0 Robot {
+DEF epuck1 Robot {
   translation -2.9 0 0
   rotation 3.3485297301176603e-06 0.9999999999887875 -3.348518467756148e-06 -1.5707996939107844
   children [
@@ -1901,10 +1907,10 @@ DEF epuck0 Robot {
       0 0 0
     ]
   }
-  controller "localization_controller"
+  controller "leader"
   cpuConsumption 1.11
 }
-DEF epuck1 Robot {
+DEF epuck2 Robot {
   translation -2.9 0 0.1
   rotation 3.3485297301176603e-06 0.9999999999887875 -3.348518467756148e-06 -1.5707996939107844
   children [
@@ -3283,10 +3289,10 @@ DEF epuck1 Robot {
       0 0 0
     ]
   }
-  controller "localization_controller"
+  controller "follower"
   cpuConsumption 1.11
 }
-DEF epuck2 Robot {
+DEF epuck3 Robot {
   translation -2.9 0 -0.1
   rotation 3.3485297301176603e-06 0.9999999999887875 -3.348518467756148e-06 -1.5707996939107844
   children [
@@ -4665,10 +4671,10 @@ DEF epuck2 Robot {
       0 0 0
     ]
   }
-  controller "localization_controller"
+  controller "follower"
   cpuConsumption 1.11
 }
-DEF epuck3 Robot {
+DEF epuck4 Robot {
   translation -2.9 0 0.2
   rotation 3.3485297301176603e-06 0.9999999999887875 -3.348518467756148e-06 -1.5707996939107844
   children [
@@ -6047,10 +6053,10 @@ DEF epuck3 Robot {
       0 0 0
     ]
   }
-  controller "localization_controller"
+  controller "follower"
   cpuConsumption 1.11
 }
-DEF epuck4 Robot {
+DEF epuck5 Robot {
   translation -2.9 0 -0.2
   rotation 3.3485297301176603e-06 0.9999999999887875 -3.348518467756148e-06 -1.5707996939107844
   children [
@@ -7429,6 +7435,6 @@ DEF epuck4 Robot {
       0 0 0
     ]
   }
-  controller "localization_controller"
+  controller "follower"
   cpuConsumption 1.11
 }
