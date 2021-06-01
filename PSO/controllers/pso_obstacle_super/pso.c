@@ -98,9 +98,9 @@ double* pso(int n_swarmsize, int n_nb, double lweight, double nbweight, double v
   
 
   // Best performances are initially current performances
-  printf("stuck in pso::findPerformance\n");
+  printf("pso::findPerformance called\n");
   findPerformance(swarm,perf,NULL,EVOLVE,robots,neighbors);
-    printf("stuck in pso::findPerformance\n");
+  printf("pso::findPerformance finished\n");
   for (i = 0; i < swarmsize; i++) {
     lbestperf[i] = perf[i];
     lbestage[i] = 1.0;                    // One performance so far

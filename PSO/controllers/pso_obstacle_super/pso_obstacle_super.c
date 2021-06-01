@@ -15,7 +15,7 @@
 #define NB_SENSOR 8                     // Number of proximity sensors
 
 /* PSO definitions */
-#define SWARMSIZE 10                    // Number of particles in swarm
+#define SWARMSIZE 20                    // Number of particles in swarm
 #define NB 1                            // Number of neighbors on each side
 #define LWEIGHT 2.0                     // Weight of attraction to personal best
 #define NBWEIGHT 2.0                    // Weight of attraction to neighborhood best
@@ -97,7 +97,6 @@ int main() {
   for (i=0;i<MAX_ROB;i++) {
     wb_receiver_enable(rec[i],32);
   }
-  printf("receivers enabled\n");
   wb_robot_step(256);
 
   double fit; 			// Fitness of the current FINALRUN
@@ -111,11 +110,11 @@ int main() {
   endfit = 0.0;
   bestfit = 0.0;
   // Do 10 runs and send the best controller found to the robot
-  for (j=0;j<2;j++) {
-    printf("stuck in pso\n");
+  for (j=0;j<10;j++) {
+    printf("pso called\n");
     // Get result of optimization
     weights = pso(SWARMSIZE,NB,LWEIGHT,NBWEIGHT,VMAX,MININIT,MAXINIT,ITS,DATASIZE,ROBOTS);
-    printf("pso called\n");
+    printf("out of PSO (!!!)\n");
     // Set robot weights to optimization results
     fit = 0.0;
     for (i=0;i<MAX_ROB;i++) {
@@ -207,18 +206,24 @@ void calc_fitness(double weights[ROBOTS][DATASIZE], double fit[ROBOTS], int its,
     }
     buffer[DATASIZE] = its;
     wb_emitter_send(emitter[i],(void *)buffer,(DATASIZE+1)*sizeof(double));
-    
   }
 
   /* Wait for response */
-  while (wb_receiver_get_queue_length(rec[0]) == 0) {
-    wb_robot_step(16);
-   }
+
+   for (i=0;i<numRobs;i++) {
+		while ((wb_receiver_get_queue_length(rec[i]) == 0)) {
+			wb_robot_step(16);
+			//printf("waiting for response, pso_super l.216\n");
+		}
+		printf("ok for i=%d\n", i);	
+	}
 
   /* Get fitness values */
   for (i=0;i<numRobs;i++) {
     rbuffer = (double *)wb_receiver_get_data(rec[i]);
+    printf("i = %d\n",i);
     fit[i] = rbuffer[0];
+    printf("queue length before next_packet (i=%d): %d\n", i, wb_receiver_get_queue_length(rec[i]));
     wb_receiver_next_packet(rec[i]);
   }
 }

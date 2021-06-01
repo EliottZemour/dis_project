@@ -89,9 +89,9 @@ double fitfunc(double weights[DATASIZE],int its);
  */
 static void reset() {
 	wb_robot_init();
-	receiver = wb_robot_get_device("receiver");
-	emitter = wb_robot_get_device("emitter");
-	
+
+    emitter = wb_robot_get_device("emitter_epuck");    
+    receiver = wb_robot_get_device("receiver_epuck");
 	//get motors
             dev_left_motor = wb_robot_get_device("left wheel motor");
             dev_right_motor = wb_robot_get_device("right wheel motor");
@@ -114,9 +114,9 @@ static void reset() {
 	wb_receiver_enable(receiver,time_step);
 
 	//Reading the robot's name. Pay attention to name specification when adding robots to the simulation!
-	sscanf(robot_name,"epuck%d",&robot_id_u); // read robot id from the robot's name
+	sscanf(robot_name,"epuck_0_%d",&robot_id_u); // read robot id from the robot's name
 	robot_id = robot_id_u%FLOCK_SIZE;	  // normalize between 0 and FLOCK_SIZE-1
-  
+    
 	for(i=0; i<FLOCK_SIZE; i++) {
 		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
 	}
@@ -149,13 +149,14 @@ int main() {
         while (wb_receiver_get_queue_length(receiver) == 0) {
             wb_robot_step(TIME_STEP);
         }
-        printf("out of while\n");
+        
         rbuffer = (double *)wb_receiver_get_data(receiver);
         
-		fit = fitfunc(rbuffer,rbuffer[DATASIZE]);
-		buffer[0] = fit;
-		wb_emitter_send(emitter,(void *)buffer,sizeof(double));
-
+        printf("controller %d before fitfunc\n", robot_id);
+        fit = fitfunc(rbuffer,rbuffer[DATASIZE]);
+        buffer[0] = fit;
+        wb_emitter_send(emitter,(void *)buffer,sizeof(double));
+        printf("emitter sent %d\n", robot_id);
 
         wb_receiver_next_packet(receiver);
     }
@@ -166,18 +167,20 @@ int main() {
 /* 
  * Find the fitness for obstacle avoidance of the passed controller */
 double fitfunc(double weights[DATASIZE],int its) {
-
+	
+	
+	
     int bmsl, bmsr, sum_sensors;
     int msl, msr;
     int max_sens;
-    double ds_value[NB_SENSOR];
+    double ds_value[NB_SENSORS];
     int i,j,k;
 
     // Fitness variables
     double fit_speed;           // Speed aspect of fitness
     double fit_diff;            // Speed difference between wheels aspect of fitness
     double fit_sens;            // Proximity sensing aspect of fitness
-    double sens_val[NB_SENSOR]; // Average values for each proximity sensor
+    double sens_val[NB_SENSORS]; // Average values for each proximity sensor
     double fitness;             // Fitness of controller
 
     // Initially no fitness measurements
@@ -198,7 +201,6 @@ double fitfunc(double weights[DATASIZE],int its) {
 		bmsl = 0; bmsr = 0;
 		sum_sensors = 0;
 		max_sens = 0; 
-		
 		for (k=0; k<NB_SENSORS; ++k) {
 			ds_value[k] = wb_distance_sensor_get_value(ds[k]);
 			
@@ -213,25 +215,25 @@ double fitfunc(double weights[DATASIZE],int its) {
 		bmsl/=MIN_SENS; bmsr/=MIN_SENS;
 		bmsl+=weights[2*NB_SENSORS]; bmsr+=weights[2*NB_SENSORS+1];
 		
-		/* Send and get information */
-		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
-
-		/// Compute self position
-		prev_my_position[0] = my_position[0];
-		prev_my_position[1] = my_position[1];
+		///* Send and get information */
+		//send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
 		
-		update_self_motion(msl,msr);
+		///// Compute self position
+		//prev_my_position[0] = my_position[0];
+		//prev_my_position[1] = my_position[1];
 		
-		process_received_ping_messages();
-
-		speed[robot_id][0] = (1/DELTA_T)*(my_position[0]-prev_my_position[0]);
-		speed[robot_id][1] = (1/DELTA_T)*(my_position[1]-prev_my_position[1]);
+		//update_self_motion(msl,msr);
+		//printf("controller %d after update_self_motion\n", robot_id);
+		//process_received_ping_messages();
+		//printf("controller %d after process_received_ping_messages\n", robot_id);
+		//speed[robot_id][0] = (1/DELTA_T)*(my_position[0]-prev_my_position[0]);
+		//speed[robot_id][1] = (1/DELTA_T)*(my_position[1]-prev_my_position[1]);
     
-		// Reynold's rules with all previous info (updates the speed[][] table)
-		reynolds_rules();
+		//// Reynold's rules with all previous info (updates the speed[][] table)
+		//reynolds_rules();
     
-		// Compute wheels speed from reynold's speed
-		compute_wheel_speeds(&msl, &msr);
+		//// Compute wheels speed from reynold's speed
+		//compute_wheel_speeds(&msl, &msr);
 		
 		// Adapt speed instinct to distance sensor values
 		if (sum_sensors > NB_SENSORS*MIN_SENS) {
@@ -243,12 +245,19 @@ double fitfunc(double weights[DATASIZE],int its) {
 		msl += bmsl;
 		msr += bmsr;
 		
+		//compute_wheel_speeds(&msl, &msr);
+		
         float msl_w = msl*MAX_SPEED_WEB/1000;
-        float msr_w = msr*MAX_SPEED_WEB/1000; 
+        float msr_w = msr*MAX_SPEED_WEB/1000;
+        
+		//limit(msl_w,MAX_SPEED);
+		//limit(msr_w,MAX_SPEED);
+	 
         wb_motor_set_velocity(dev_left_motor, (int)msl_w);
         wb_motor_set_velocity(dev_left_motor, (int)msr_w);
         wb_robot_step(128); // run one step
-
+        
+        
         // Get current fitness value
 
         // Average speed
