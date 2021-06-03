@@ -20,16 +20,32 @@
 #include <webots/supervisor.h>
 
 #define ROBOTS 5
+#define TIME_STEP 16	
 
 static WbNodeRef robs[ROBOTS];
 static WbFieldRef robs_translation[ROBOTS];
 static WbFieldRef robs_rotation[ROBOTS];
 WbDeviceTag emitter_device;
 
-double loc[ROBOTS][4];
+float loc[ROBOTS][3];
+
+int t;
+
+float global_x,global_z;
+float rel_x[ROBOTS-1];
+float rel_z[ROBOTS-1];
+
+float center[2] = {0, 0};
+float center_old[2] = {0, 0};
+
+float d_max = 6.28 * 0.020 * 0.016;
 
 /* Good relative positions for each robot */
 double good_rp[ROBOTS][2] = { {0.0,0.0}, {-0.15,-0.15}, {0.0,-0.30}, {0.15,-0.15}, {0.0,-2.45} };
+
+float dfo_metric, v_metric; // The elements to multiply for the formation metric
+
+float dbl_nrobots = (float) ROBOTS; // float version of nrobots for division in metric
 
 void reset(void) {
 	wb_robot_init();
@@ -51,76 +67,78 @@ void reset(void) {
 	emitter_device = wb_robot_get_device(emitter0);
 }
 
+void compute_dist_metric() {
+	dfo_metric = 0.0;
+	int i;
+	for (i=1; i<ROBOTS; i++) {
+		dfo_metric += sqrt(pow(rel_x[i-1]-good_rp[i][0],2) + pow(rel_z[i-1]-good_rp[i][1],2));
+	}
+	dfo_metric = 1.0 + dfo_metric / (dbl_nrobots-1);
+	dfo_metric = 1.0 / dfo_metric;
+}
+
+void compute_formation_center() {
+    int i;
+    for (i=0; i< ROBOTS; i++) {
+        center[0] += loc[i][0];
+        center[1] += loc[i][1];
+    }
+    center[0] /= dbl_nrobots;
+    center[1] /= dbl_nrobots;
+}
+
+void compute_veloc_metric() {
+      v_metric = sqrtf(powf(center_old[0]-center[0],2.0) + powf(center_old[1]-center[1],2.0));
+      v_metric /= d_max;
+}
+
 int main(int argc, char *args[]) {
-	float buffer[255];
-	float global_x,global_z,rel_x,rel_z;
-	double temp_err, err, avg_err;
-	int cnt,i;
+
+	float fit_formation;
+	int i;
 	int print_enabled = 0;
-	int send_interval = 5;
 
 	if (argc > 1) {
 		print_enabled = atoi(args[1]);
 		printf("Print: %d\n", print_enabled);
 	}
-	if (argc > 2) {
-		send_interval = atoi(args[2]);
-		if (send_interval < 1) send_interval = 1;
-		if (send_interval > 1000) send_interval = 1000;
-		printf("Sending at intervals of %d\n", send_interval);
-	}
-
 
 	reset();
 
-	avg_err = 0.0;
-	for(cnt = 0; ; cnt++) { /* The robot never dies! */
+	for(;;) { 
+		wb_robot_step(TIME_STEP); /* run one step */
+		
+		if (t % 10 == 0) {
+			center_old[0] = center[0];
+			center_old[1] = center[1];
+			for (i=1;i<ROBOTS;i++) {
+				/* Get data */
+				loc[0][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[0];
+				loc[0][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[2];
+				loc[0][2] = wb_supervisor_field_get_sf_rotation(robs_rotation[0])[3];
+				
+				loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[0];
+				loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[2];
+				loc[i][2] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3];
 
-		/* Send relative positions to followers */
-		err = 0.0;
-		for (i=1;i<ROBOTS;i++) {
-			/* Get data */
-			loc[0][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[0];
-			loc[0][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[1];
-			loc[0][2] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[2];
-			loc[0][3] = wb_supervisor_field_get_sf_rotation(robs_rotation[0])[3];
-			loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[0];
-			loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[1];
-			loc[i][2] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[2];
-			loc[i][3] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3];
+				/* Find global relative coordinates */
+				global_x = loc[i][0] - loc[0][0];
+				global_z = loc[i][1] - loc[0][1];
+				/* Calculate relative coordinates */
+				rel_x[i-1] = -global_x*cos(loc[i][2]) + global_z*sin(loc[i][2]);
+				rel_z[i-1] = global_x*sin(loc[i][2]) + global_z*cos(loc[i][2]);
 
-			/* Find global relative coordinates */
-			global_x = loc[i][0] - loc[0][0];
-			global_z = loc[i][2] - loc[0][2];
-			/* Calculate relative coordinates */
-			rel_x = -global_x*cos(loc[i][3]) + global_z*sin(loc[i][3]);
-			rel_z = global_x*sin(loc[i][3]) + global_z*cos(loc[i][3]);
-			buffer[0]= i;
-			buffer[1] = rel_x;
-			buffer[2] = rel_z;
-			buffer[3] = loc[0][3] - loc[i][3];
-			while (buffer[2] > M_PI) buffer[2] -= 2.0*M_PI;
-			while (buffer[2] < -M_PI) buffer[2] += 2.0*M_PI;
-			if (cnt % send_interval == 0){
-				wb_emitter_send(emitter_device,(char *)buffer,4*sizeof(float));        
 			}
+			compute_formation_center();
+			compute_dist_metric();
+			compute_veloc_metric();
+			
+			fit_formation = dfo_metric * v_metric;
 
-			/* Check error in position of robot */
-			rel_x = global_x*cos(loc[0][3]) - global_z*sin(loc[0][3]);
-			rel_z = -global_x*sin(loc[0][3]) - global_z*cos(loc[0][3]);
-			temp_err = sqrt(pow(rel_x-good_rp[i][0],2) + pow(rel_z-good_rp[i][1],2));
 			if (print_enabled)
-				printf("Err %d: %.3f, ",i,temp_err);
-			err += temp_err/ROBOTS;
+				printf("Performance metric: %.2f\n",fit_formation);
 		}
-		if (print_enabled)
-			printf("\n");
-		err = exp(-err/0.2);
-		avg_err += err;
-		if (print_enabled)
-			printf("Performance: %.2f, Average Performance: %.2f\n",err,avg_err/cnt);
-
-		wb_robot_step(64); /* run one step */
+		t += TIME_STEP;	
 	}
 	return 0;
 }

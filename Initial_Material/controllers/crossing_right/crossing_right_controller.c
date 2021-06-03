@@ -18,7 +18,7 @@
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
 /*Webots 2018b*/
-#define FLOCK_SIZE	  10	  // Size of flock
+#define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  16	  // [ms] Length of time step
 
 
@@ -109,11 +109,10 @@ static void reset() {
 	}
   
            printf("Reset: robot %d\n",robot_id_u);
-        
+           
            // for the crossing part
            migr[0] = 0;
-           migr[1] = -10;
-        
+           migr[1] = -2;
 }
 
 
@@ -250,8 +249,6 @@ void reynolds_rules() {
 		speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
 		speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; // y axis of webots is inverted
 	}
-	
-  
 }
 
 
@@ -278,7 +275,7 @@ void process_received_ping_messages(void) {
 	double theta;
 	double range;
 	char *inbuffer;	// Buffer for the receiver node
-	int other_robot_id;
+	int other_robot_id, other_robot_id_u;
 	
 	while (wb_receiver_get_queue_length(receiver) > 0) {
 		inbuffer = (char*) wb_receiver_get_data(receiver);
@@ -292,20 +289,22 @@ void process_received_ping_messages(void) {
 		range = sqrt((1/message_rssi));
 		
 
-		other_robot_id = (int)(inbuffer[5]-'0');  // since the name of the sender is in the received message. Note: this does not work for robots having id bigger than 9!
+		other_robot_id_u = (int)(inbuffer[5]-'0');  // since the name of the sender is in the received message. Note: this does not work for robots having id bigger than 9!
+		other_robot_id = other_robot_id_u%FLOCK_SIZE;	  // normalize between 0 and FLOCK_SIZE-1
 		
+		if (other_robot_id_u < 5){
 		// Get position update
 		prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
 		prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
 
 		relative_pos[other_robot_id][0] = range*cos(theta);  // relative x pos
 		relative_pos[other_robot_id][1] = -1.0 * range*sin(theta);   // relative y pos
-
-		//printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
-                  
+		
+		printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id_u,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
+                 
 		relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
 		relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);		
-		 
+                   }
 		wb_receiver_next_packet(receiver);
 	}
 }
@@ -386,9 +385,6 @@ int main(){
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
-		
-		//limit(&msl,MAX_SPEED);
-        	           //limit(&msr,MAX_SPEED);
                   
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;

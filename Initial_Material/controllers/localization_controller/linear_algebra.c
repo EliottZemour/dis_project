@@ -77,7 +77,6 @@ int inv(int N, double A[N][N], double B[N][N])
 	double d;
 	double tol = 0.0000001;
 	d = det(N,A);
-	printf("det : %g\n", d);
 	if (d < tol)
 	{
 		//CATCH_ERR(d<tol,"matrix not inversible");
