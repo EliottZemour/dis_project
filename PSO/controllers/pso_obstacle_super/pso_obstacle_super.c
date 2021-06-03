@@ -101,7 +101,7 @@ int main() {
 
   double fit; 			// Fitness of the current FINALRUN
   double endfit; 			// Best fitness over 10 runs
-  double fitvals[FINALRUNS]; 		// Fitness values for final tests
+  //double fitvals[FINALRUNS]; 		// Fitness values for final tests
   double w[MAX_ROB][DATASIZE]; 		// Weights to be send to robots (determined by pso() )
   double f[MAX_ROB];			// Evaluated fitness (modified by calc_fitness() )
   double bestfit, bestw[DATASIZE];	// Best fitness and weights
@@ -126,7 +126,7 @@ int main() {
     for (i=0;i<FINALRUNS;i+=MAX_ROB) {
       calc_fitness(w,f,FIT_ITS,MAX_ROB);
       for (k=0;k<MAX_ROB && i+k<FINALRUNS;k++) {
-        fitvals[i+k] = f[k];
+        //fitvals[i+k] = f[k];
         fit += f[k];
       }
     }
@@ -196,7 +196,7 @@ void calc_fitness(double weights[ROBOTS][DATASIZE], double fit[ROBOTS], int its,
   double *rbuffer;
   int i,j;
   
-    printf("went into calc_fitness\n");
+  //printf("went into calc_fitness\n");
 
   /* Send data to robots */
   for (i=0;i<numRobs;i++) {
@@ -215,15 +215,15 @@ void calc_fitness(double weights[ROBOTS][DATASIZE], double fit[ROBOTS], int its,
 			wb_robot_step(16);
 			//printf("waiting for response, pso_super l.216\n");
 		}
-		printf("ok for i=%d\n", i);	
+		//printf("ok for i=%d\n", i);	
 	}
 
   /* Get fitness values */
   for (i=0;i<numRobs;i++) {
     rbuffer = (double *)wb_receiver_get_data(rec[i]);
-    printf("i = %d\n",i);
+    //printf("i = %d\n",i);
     fit[i] = rbuffer[0];
-    printf("queue length before next_packet (i=%d): %d\n", i, wb_receiver_get_queue_length(rec[i]));
+    //printf("queue length before next_packet (i=%d): %d\n", i, wb_receiver_get_queue_length(rec[i]));
     wb_receiver_next_packet(rec[i]);
   }
 }

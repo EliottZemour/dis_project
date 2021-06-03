@@ -74,7 +74,7 @@ float theta_robots[FLOCK_SIZE];
  * Declaration of functions before the main
  */
  
-void limit(int *number, int limit);
+void limit(float *number, int limit);
 void update_self_motion(int msl, int msr);
 void compute_wheel_speeds(int *msl, int *msr);
 void reynolds_rules();
@@ -152,13 +152,13 @@ int main() {
         
         rbuffer = (double *)wb_receiver_get_data(receiver);
         
-        printf("controller %d before fitfunc\n", robot_id);
+        //printf("controller %d before fitfunc\n", robot_id);
         fit = fitfunc(rbuffer,rbuffer[DATASIZE]);
         buffer[0] = fit;
         wb_emitter_send(emitter,(void *)buffer,sizeof(double));
-        printf("emitter sent %d\n", robot_id);
+        //printf("emitter sent %d\n", robot_id);
 
-        wb_receiver_next_packet(receiver);
+        //wb_receiver_next_packet(receiver);
     }
 	
 	return 0;	
@@ -250,11 +250,11 @@ double fitfunc(double weights[DATASIZE],int its) {
         float msl_w = msl*MAX_SPEED_WEB/1000;
         float msr_w = msr*MAX_SPEED_WEB/1000;
         
-		//limit(msl_w,MAX_SPEED);
-		//limit(msr_w,MAX_SPEED);
+		limit(&msl_w,MAX_SPEED_WEB);
+		limit(&msr_w,MAX_SPEED_WEB);
 	 
-        wb_motor_set_velocity(dev_left_motor, (int)msl_w);
-        wb_motor_set_velocity(dev_left_motor, (int)msr_w);
+        wb_motor_set_velocity(dev_left_motor, msl_w);
+        wb_motor_set_velocity(dev_right_motor, msr_w);
         wb_robot_step(128); // run one step
         
         
@@ -288,7 +288,7 @@ double fitfunc(double weights[DATASIZE],int its) {
 /*
  * Keep given int number within interval {-limit, limit}
  */
-void limit(int *number, int limit) {
+void limit(float *number, int limit) {
 	if (*number > limit)
 		*number = limit;
 	if (*number < -limit)
