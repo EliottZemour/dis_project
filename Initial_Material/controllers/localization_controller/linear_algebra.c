@@ -71,26 +71,25 @@ void add_mat(int N, int M, double A[N][M], double B[N][M], double C[N][M])
  * @return	  noninv	true if the matrix is not inversible
  * 
  */
-bool inv(int N, double A[N][N], double B[N][N])
+int inv(int N, double A[N][N], double B[N][N])
 {
 	double C[N][N], Ct[N][N];
 	double d;
 	double tol = 0.0000001;
 	d = det(N,A);
-	
 	if (d < tol)
 	{
-		CATCH_ERR(d<tol,"matrix not inversible");
-		return false;
+		//CATCH_ERR(d<tol,"matrix not inversible");
+		return 0;
 	}
 	cofactor(N,A,C);
 	transpose(N,N,C,Ct);
 	
-	for(int i; i<N;i++)
-		for(int j;j<N;j++)
+	for(int i=0; i<N;i++)
+		for(int j=0;j<N;j++)
 			B[i][j] = Ct[i][j]/d;
 	
-	return true;
+	return 1;
 		
 }
 
@@ -107,7 +106,10 @@ double det(int N, double A[N][N])
 	float sign = 1;
 	double d= 0;
 	double pivot[N-1][N-1];
-	if (N==2)
+	if (N==1){ 
+	  d = A[0][0];
+	}
+	else if (N==2)
 	{
 		d = A[0][0]*A[1][1]-A[1][0]*A[0][1];
 	}
@@ -185,6 +187,7 @@ void cofactor(int N, double A[N][N], double C[N][N])
 			C[i][j] = sign*det(N-1,cofactor);
 			sign = -sign;
 		}
+	sign = -sign;
 	}
 }
 
@@ -198,7 +201,32 @@ void cofactor(int N, double A[N][N], double C[N][N])
  */
 void transpose(int N, int M, double A[N][M], double At[M][N])
 {
-	for(int i; i<N;i++)
-		for(int j; j<M;j++)
+	for(int i=0; i<N;i++)
+		for(int j=0; j<M;j++)
 			At[j][i] = A[i][j];
+}
+
+
+
+
+
+// -----------PRINT FUNCTION ----------
+/**
+ * @brief Generic print function
+ * @param[in] NL 	nb of lines of matrix A 
+ * @param[in] NC	nb of colonms of matrix A 
+ * @param[out]A 	generic matrix A
+ * 
+ */
+void printM(int NL, int NC, double M[NL][NC])
+{
+    int i, j;
+    printf("Matrix is \n");
+
+    for (i = 0; i < NL; i++) {
+        for (j = 0; j < NC; j++) {
+            printf("\t%f\t", M[i][j]);
+        }
+        printf("\n");
+    }
 }
