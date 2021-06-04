@@ -1,4 +1,4 @@
-# Distributed intelligent systems: Course Project
+# ENG-466 Distributed intelligent systems: Course Project
 
 ### Team members:
 * _[Nicolas Marbot](https://people.epfl.ch/nicolas.marbot)_
