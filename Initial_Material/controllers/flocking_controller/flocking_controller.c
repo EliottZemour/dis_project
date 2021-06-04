@@ -10,7 +10,6 @@
 #include <webots/distance_sensor.h>
 #include <webots/emitter.h>
 #include <webots/receiver.h>
-#include "trajectories.h"
 
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          150     // Minimum sensibility value
@@ -28,13 +27,13 @@
 #define WHEEL_RADIUS		0.020	// Wheel radius (meters)
 #define DELTA_T		0.016	// Timestep (seconds)
 
-#define MARGINAL_THRESHOLD  0.6       // Robots only flock with the neighbors which are closer than this threshold
-#define RULE1_THRESHOLD     0.3      // Threshold to activate aggregation rule. default 0.20
-#define RULE1_WEIGHT        0.99      // Weight of aggregation rule. default 0.6/10
-#define RULE2_THRESHOLD     0.05      // Threshold to activate dispersion rule. default 0.15
-#define RULE2_WEIGHT        (0.15/10) // Weight of dispersion rule. default 0.02/10
-#define RULE3_WEIGHT        (0.15/10) // Weight of consistency rule. default 1.0/10
-#define MIGRATION_WEIGHT    (0.05/10) // Wheight of attraction towards the common goal. default 0.01/10
+#define MARGINAL_THRESHOLD  0.4      // Robots only flock with the neighbors which are closer than this threshold ANCIENNE: 0.6
+#define RULE1_THRESHOLD     0.2      // Threshold to activate aggregation rule. default 0.20 ANCIENNE:0.3
+#define RULE1_WEIGHT        0.03      // Weight of aggregation rule. default 0.6/10 ANCIENNE:0.99
+#define RULE2_THRESHOLD     0.15      // Threshold to activate dispersion rule. default 0.15 ANCIENNE:0.05
+#define RULE2_WEIGHT        (0.03/10) // Weight of dispersion rule. default 0.02/10 ANCIENNE:0.15/10
+#define RULE3_WEIGHT        (1.0/10) // Weight of consistency rule. default 1.0/10 ANCIENNE:0.15/10
+#define MIGRATION_WEIGHT    (0.01/10) // Wheight of attraction towards the common goal. default 0.01/10 ANCIENNE:0.05/10
 #define MIGRATORY_URGE 1              // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -65,7 +64,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
 int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received
-float migr[2] = {10,0};	        // Migration vector
+float migr[2] = {0,-1};	        // Migration vector
 char* robot_name;
 
 float theta_robots[FLOCK_SIZE];
@@ -92,7 +91,9 @@ static void reset() {
 		ds[i]=wb_robot_get_device(s);	// the device name is specified in the world file
 		s[2]++;				// increases the device number
 	}
+	
 	robot_name=(char*) wb_robot_get_name(); 
+	
 	int time_step = wb_robot_get_basic_time_step();
 	for(i=0;i<NB_SENSORS;i++)
 		wb_distance_sensor_enable(ds[i],time_step);
@@ -107,10 +108,12 @@ static void reset() {
 		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
 	}
   
-        printf("Reset: robot %d\n",robot_id_u);
+           printf("Reset: robot %d\n",robot_id_u);
         
-        migr[0] = -5;//-10;
-        migr[1] = -10;
+           // for the crossing part
+           migr[0] = 0;
+           migr[1] = -10;
+        
 }
 
 
@@ -240,13 +243,15 @@ void reynolds_rules() {
   speed[robot_id][1] *= -1;  // y axis of webots is inverted
   
   if(MIGRATORY_URGE == 0){
-	  speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
-	  speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
+	  speed[robot_id][0] += 0.02;//*cos(my_position[2] + M_PI/2)+2;
+	  speed[robot_id][1] += 0.02;//*sin(my_position[2] + M_PI/2);
 	} else {
 	//printf("my pos: %g %g\n", my_position[0], my_position[1]);
 		speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
 		speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; // y axis of webots is inverted
 	}
+	
+  
 }
 
 
@@ -274,12 +279,13 @@ void process_received_ping_messages(void) {
 	double range;
 	char *inbuffer;	// Buffer for the receiver node
 	int other_robot_id;
+	
 	while (wb_receiver_get_queue_length(receiver) > 0) {
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
 		double y = message_direction[2];
-		double x = message_direction[1];
+		double x = message_direction[0];
 
 		theta =	-atan2(y,x);
 		theta = theta + my_position[2]; // find the relative theta;
@@ -294,9 +300,9 @@ void process_received_ping_messages(void) {
 
 		relative_pos[other_robot_id][0] = range*cos(theta);  // relative x pos
 		relative_pos[other_robot_id][1] = -1.0 * range*sin(theta);   // relative y pos
-          	if (other_robot_id==0) {
+
 		//printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
-                  }
+                  
 		relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
 		relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);		
 		 
@@ -320,9 +326,7 @@ int main(){
 
 	msl = 0; msr = 0; 
 	max_sens = 0; 
-	
-	//trajectory_1(dev_left_motor, dev_right_motor);
-	
+		
 	// Forever
 	for(;;){
 
@@ -350,7 +354,8 @@ int main(){
 		//if (robot_id == 1) {
   		//printf("bmsl = %d\n", bmsl);
   		//}
-		bmsl+=100; bmsr+=50;
+		//bmsl+=100; bmsr+=50;
+		bmsl+=66; bmsr+=72;
 		//bmsl*=10; bmsr*=10;
               
 		/* Send and get information */
@@ -377,11 +382,15 @@ int main(){
 		if (sum_sensors > NB_SENSORS*MIN_SENS) {
 			msl -= msl*max_sens/(2*MAX_SENS);
 			msr -= msr*max_sens/(2*MAX_SENS);
-		}
-    
+			//msl -= msl*4*max_sens/(5*MAX_SENS);
+			//msr -= msr*4*max_sens/(5*MAX_SENS);
+		}    
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
+		
+		//limit(&msl,MAX_SPEED);
+        	           //limit(&msr,MAX_SPEED);
                   
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
