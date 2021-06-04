@@ -1,3 +1,13 @@
+/*****************************************************************************/
+/* File:         follower.c                                                  */
+/* Version:      3.0                                                         */
+/* Date:         02-Nov-05 -- 06-Oct-2015                                    */
+/* Description:  Formation movement with E-Pucks                             */
+/*                                                                           */
+/* Author: 	 22-Oct-04 by nikolaus.correll@epfl.ch                       */
+/* improved by Ali Marjovi 20-Oct-2014 and 06-Oct 2015			     */
+/*****************************************************************************/
+
 #include <stdio.h>
 #include <math.h>
 
@@ -20,7 +30,7 @@
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
 /*Webots 2018b*/
-
+#define DELTA_T			0.064	// Timestep (seconds)
 /*Webots 2018b*/
 WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
@@ -32,19 +42,24 @@ WbDeviceTag receiver;                 // Handle for the receiver node for range 
 
 
 int robot_id;                       // Unique robot ID
-
+float relative_pos[3];	// relative X, Z, Theta of all robots
+float relative_pos_init[3];	// relative X, Z, Theta of all robots
+float prev_relative_pos[3];	// Previous relative  X, Z, Theta values
+float my_position[3];     		// X, Z, Theta of the current robot
+float prev_my_position[3]; 
+float speed[2];		// Speeds calculated with Reynold's rules
+float relative_speed[2]; 
 float goal_range   = 0.0;
 float goal_bearing = 0.0;
-
+float theta;
 float leader_range = 0.0;
 float leader_bearing = 0.0;
 float leader_orientation = 0.0;
-
 static void reset(void) {
 	wb_robot_init();
 
 	receiver    = wb_robot_get_device("receiver");
-
+	wb_receiver_enable(receiver,64); 
 	/*Webots 2018b*/
 	//get motors
 	left_motor = wb_robot_get_device("left wheel motor");
@@ -66,17 +81,47 @@ static void reset(void) {
 	printf("Reset: robot %d\n",robot_id);
 }
 
+
+
 void update_leader_measurement(float new_leader_range, float new_leader_bearing, float new_leader_orientation) {
 	leader_range = new_leader_range;
 	leader_bearing = new_leader_bearing;
 	leader_orientation = new_leader_orientation;
 }
 
+/*
+ * Updates robot position with wheel speeds
+ */
+void update_self_motion(int msl, int msr) { 
+	float theta = my_position[2];
+  
+	// Compute deltas of the robot
+	float dr = (float)msr * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+	float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+	float du = (dr + dl)/2.0;
+	float dtheta = (dr - dl)/AXLE_LENGTH;
+  
+	// Compute deltas in the environment
+	float dx = -du * sinf(theta);
+	float dz = -du * cosf(theta);
+  
+	// Update position
+	my_position[0] += dx;
+	my_position[1] += dz;
+	my_position[2] += dtheta;
+  
+	// Keep orientation within 0, 2pi
+	if (my_position[2] > 2*M_PI) my_position[2] -= 2.0*M_PI;
+	if (my_position[2] < 0) my_position[2] += 2.0*M_PI;
+}
+
+
 void compute_wheel_speeds(int nsl, int nsr, int *msl, int *msr) {
 	// Define constants
-	float Ku = 2.0;
+	float Ku = 5;
 	float Kw = 10.0;
 	float Kb = 1.0;
+
 
 	// Compute the range and bearing to the wanted position
 	float x = leader_range * cosf(leader_bearing);
@@ -96,6 +141,8 @@ void compute_wheel_speeds(int nsl, int nsr, int *msl, int *msr) {
 	// Convert to wheel speeds!
 	*msl = (int)((u - AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
 	*msr = (int)((u + AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
+	
+
 }
 
 int main(){
@@ -103,15 +150,16 @@ int main(){
 	/*Webots 2018b*/
 	float msl_w, msr_w;
 	/*Webots 2018b*/
+	int distances[NB_SENSORS];        // array keeping the distance sensor readings                 // buffer for the range and bearing
+	int i, initialized;
+	const double *message_direction;
 	float new_leader_range, new_leader_bearing, new_leader_orientation; // received leader range and bearing
-	int distances[NB_SENSORS];        // array keeping the distance sensor readings
-	float *rbbuffer;                  // buffer for the range and bearing
-	int i,initialized;
-
+	double message_rssi; // Received Signal Strength indicator
+	float *rbbuffer;
+	float leader_heading_init;
 	reset();                          // Initialization 
 	for(i=0;i<NB_SENSORS;i++)
 		wb_distance_sensor_enable(ds[i],64);
-	wb_receiver_enable(receiver,64); 
 
 	//read the initial packets
 	initialized = 0;
@@ -121,23 +169,37 @@ int main(){
 			wb_robot_step(64); // Executing the simulation for 64ms
 		}  
 		if (wb_receiver_get_queue_length(receiver) > 0) {
-			rbbuffer = (float*) wb_receiver_get_data(receiver);
-			if((int)rbbuffer[0]==robot_id){
-				initialized = 1;
-				rbbuffer = (float*) wb_receiver_get_data(receiver);
-				goal_range = sqrt(rbbuffer[1]*rbbuffer[1] + rbbuffer[2]*rbbuffer[2]);
-				goal_bearing = -atan2(rbbuffer[1],rbbuffer[2]);
-				printf("Goal of robot %d: range = %.2f, bearing = %.2f\n", robot_id, goal_range, goal_bearing);
-				leader_range = goal_range;
-				leader_bearing = goal_bearing;
-				leader_orientation = rbbuffer[2];
-				printf("  Initial relative position: range = %.2f, bearing = %.2f, heading = %.2f\n", leader_range, leader_bearing, leader_orientation);
-			}
-			wb_receiver_next_packet(receiver);
+		initialized=1;
+		rbbuffer = (char*) wb_receiver_get_data(receiver);
+		sscanf(rbbuffer, "%f", &leader_heading_init);
+		message_direction = wb_receiver_get_emitter_direction(receiver);
+		message_rssi = wb_receiver_get_signal_strength(receiver);
+		
+		double y_init = message_direction[2];
+		double x_init = message_direction[0];
+		double theta_init = -atan2(y_init,x_init);
+		theta_init += my_position[2];
+            	if (theta_init > M_PI) theta_init -= 2.0*M_PI;
+            	if (theta_init < -M_PI) theta_init += 2.0 * M_PI;
+		double range_init = sqrt((1/message_rssi));
+		relative_pos_init[0] = range_init*cos(theta_init);  // relative x pos
+		relative_pos_init[1] = -1.0 * range_init*sin(theta_init);   // relative y pos
+		
+		goal_range = range_init;
+		goal_bearing = -atan2(relative_pos_init[0],relative_pos_init[1]);
+		
+		leader_range = goal_range;
+		leader_bearing = goal_bearing;
+
+		
+                      printf(" goal range = %f , goal bearing = %f %d\n", goal_range, goal_bearing, robot_id);
+		wb_receiver_next_packet(receiver);
 		}
 	}
 	msl=0; msr=0;  
-
+            double range;
+            char *inbuffer;	// Buffer for the receiver node
+            float leader_heading;
 	for(;;){
 		int sensor_nb;
 		int bmsl = 0;
@@ -149,18 +211,34 @@ int main(){
 		  bmsl += distances[sensor_nb] * Interconn[sensor_nb + NB_SENSORS];
 		}
 		bmsl /= 400; bmsr /= 400;        // Normalizing speeds
+		
+		update_self_motion(msl,msr);
+		
+		
+            	while (wb_receiver_get_queue_length(receiver) > 0) {
+            		inbuffer = (char*) wb_receiver_get_data(receiver);
+            		sscanf(inbuffer, "%f", &leader_heading);
+            		message_direction = wb_receiver_get_emitter_direction(receiver);
+            		message_rssi = wb_receiver_get_signal_strength(receiver);
+            		double y = message_direction[2];
+            		double x = message_direction[0];
 
-		if (wb_receiver_get_queue_length(receiver) > 0) {
-			rbbuffer = (float*) wb_receiver_get_data(receiver);
-			if((int)rbbuffer[0]==robot_id){
-				new_leader_range = sqrt(rbbuffer[1]*rbbuffer[1] + rbbuffer[2]*rbbuffer[2]);
-				new_leader_bearing = -atan2(rbbuffer[1],rbbuffer[2]);
-				new_leader_orientation = rbbuffer[3];
-				update_leader_measurement(new_leader_range, new_leader_bearing, new_leader_orientation);
-				//printf("%d: Leader: r:%f gr:%f, b:%f gb:%f, o:%f\n", new_leader_range, goal_range, new_leader_bearing, goal_bearing, new_leader_orientation);
-			}
-			wb_receiver_next_packet(receiver);
-		}
+            		theta =	-atan2(y,x);
+            		theta = M_PI/2 - theta; // find the relative theta;
+            		if (theta > M_PI) theta -= 2.0*M_PI;
+            		if (theta < -M_PI) theta += 2.0 * M_PI;
+            		range = sqrt((1/message_rssi));
+		
+            		new_leader_range = range;
+            		new_leader_bearing = -theta;
+            		new_leader_orientation = leader_heading - my_position[2];		
+		 
+            		wb_receiver_next_packet(receiver);
+            	}
+
+		
+		
+		update_leader_measurement(new_leader_range, new_leader_bearing, new_leader_orientation);
 
 
 		compute_wheel_speeds(0, 0, &msl, &msr);
