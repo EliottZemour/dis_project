@@ -46,10 +46,8 @@ WbDeviceTag dev_left_motor; //handler for left wheel of the robot
 WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3};
-
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
 WbDeviceTag emitter;		// Handle for the emitter node
-
 int robot_id;	// Unique and normalized (between 0 and FLOCK_SIZE-1) robot ID
 
 float relative_pos[3];	// relative X, Z, Theta of all robots
@@ -59,7 +57,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[2];		// Speeds calculated with Reynold's rules
 float relative_speed[2];	// Speeds calculated with Reynold's rules
 int initialized;		// != 0 if initial positions have been received
-float migr[2] = {10,15};	        // Migration vector
+float migr[2] = {10,0};	        // Migration vector
 char* robot_name;
 float theta_robots;
 char buffer[255]; // Buffer for emitter
@@ -80,7 +78,6 @@ static void reset() {
             wb_motor_set_position(dev_right_motor, INFINITY);
             wb_motor_set_velocity(dev_left_motor, 0.0);
             wb_motor_set_velocity(dev_right_motor, 0.0);
-	
 	int i;
 	char s[4]="ps0";
 	for(i=0; i<NB_SENSORS;i++) {
@@ -191,6 +188,7 @@ int main(){
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
 	int max_sens;			// Store highest sensor value
  	int i;				// Loop counter
+ 	float angle;
  	reset();			// Resetting the robot
 
 	msl = 0; msr = 0; 
@@ -213,11 +211,11 @@ int main(){
               
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
-
+                      
 		/// Compute self position
 		prev_my_position[0] = my_position[0];
 		prev_my_position[1] = my_position[1];
-		
+		prev_my_position[2] = my_position[2];
 		update_self_motion(msl,msr);
 		
 
