@@ -149,7 +149,8 @@ void compute_wheel_speeds(int nsl, int nsr, int *msl, int *msr) {
 	// Convert to wheel speeds!
 	*msl = (int)((u - AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
 	*msr = (int)((u + AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
-
+          //limit(msl, MAX_SPEED);
+          //limit(msr, MAX_SPEED);
 }
 
 int main(){
@@ -162,9 +163,10 @@ int main(){
 	const double *message_direction;
 	float new_leader_range, new_leader_bearing, new_leader_orientation; // received leader range and bearing
 	double message_rssi; // Received Signal Strength indicator
-	float *rbbuffer;
+	char *rbbuffer;
 	float leader_heading_init;
 	reset();                          // Initialization 
+	my_position[2]=-1.5708;
 	for(i=0;i<NB_SENSORS;i++)
 		wb_distance_sensor_enable(ds[i],64);
 
@@ -225,17 +227,16 @@ int main(){
             	while (wb_receiver_get_queue_length(receiver) > 0) {
             		inbuffer = (char*) wb_receiver_get_data(receiver);
             		sscanf(inbuffer, "%f", &leader_heading);
-            		//printf("%f\n", leader_heading);
+            		printf("%f\n", leader_heading);
             		message_direction = wb_receiver_get_emitter_direction(receiver);
             		message_rssi = wb_receiver_get_signal_strength(receiver);
             		double y = message_direction[2];
             		double x = message_direction[0];
-
+            		range = sqrt((1/message_rssi));
             		theta =	-atan2(y,x);
             		theta = M_PI/2 - theta; // find the relative theta;
             		if (theta > M_PI) theta -= 2.0*M_PI;
             		if (theta < -M_PI) theta += 2.0 * M_PI;
-            		range = sqrt((1/message_rssi));
 		
             		new_leader_range = range;
             		new_leader_bearing = -theta;
