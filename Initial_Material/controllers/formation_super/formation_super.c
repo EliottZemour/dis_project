@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <webots/robot.h>
 #include <webots/emitter.h>
@@ -53,19 +54,15 @@ float dbl_nrobots = (float) ROBOTS; // float version of nrobots for division in 
 void reset(void) {
 	wb_robot_init();
 
-	char rob[7] = "epuck1";
+	char rob[6] = "epuck";
 	char emitter0[8] = "emitter";
 	int i;
-	robs[0] = wb_supervisor_node_get_from_def(rob);
-	robs_translation[0] = wb_supervisor_node_get_field(robs[0],"translation");
-	robs_rotation[0] = wb_supervisor_node_get_field(robs[0],"rotation");
-
-	rob[5]++;
-	for (i=1;i<ROBOTS;i++) {
+	for (i=0;i<ROBOTS;i++) {
+		sprintf(rob,"epuck%d",i);
 		robs[i] = wb_supervisor_node_get_from_def(rob);
 		robs_translation[i] = wb_supervisor_node_get_field(robs[i],"translation");
-		robs_rotation[i] = wb_supervisor_node_get_field(robs[i],"rotation");    
-		rob[5]++;
+		robs_rotation[i] = wb_supervisor_node_get_field(robs[i],"rotation");
+	 
 	}
 	emitter_device = wb_robot_get_device(emitter0);
 }
@@ -121,7 +118,7 @@ void controller_print_log(double time)
 int main(int argc, char *args[]) {
 
 	int i;
-	int print_enabled = 0;
+	int print_enabled = 1;
 
 	if (argc > 1) {
 		print_enabled = atoi(args[1]);
@@ -167,5 +164,4 @@ int main(int argc, char *args[]) {
 		controller_print_log(t/1000.0);
 		t += TIME_STEP;	
 	}
-	return 0;
 }
