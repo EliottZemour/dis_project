@@ -22,7 +22,7 @@
 
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          150     // Minimum sensibility value
-#define MAX_SENS          6096    // Maximum sensibility value
+#define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         800     // Maximum speed
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
@@ -45,9 +45,7 @@
 WbDeviceTag dev_left_motor; //handler for left wheel of the robot
 WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
-
-int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3};	
-
+int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3};
 
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
 WbDeviceTag emitter;		// Handle for the emitter node
@@ -61,7 +59,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[2];		// Speeds calculated with Reynold's rules
 float relative_speed[2];	// Speeds calculated with Reynold's rules
 int initialized;		// != 0 if initial positions have been received
-float migr[2] = {20,0};	        // Migration vector
+float migr[2] = {10,10};	        // Migration vector
 char* robot_name;
 float theta_robots;
 char buffer[255]; // Buffer for emitter
@@ -96,7 +94,7 @@ static void reset() {
 
 
 	//Reading the robot's name. Pay attention to name specification when adding robots to the simulation!
-	sscanf(robot_name,"epuck%d",&robot_id); // read robot id from the robot's name
+	sscanf(robot_name,"epuck%d(1)",&robot_id); // read robot id from the robot's name
 
   
 	initialized = 0;		  // Set initialization to 0 (= not yet initialized)
@@ -115,7 +113,6 @@ static void reset() {
 */
 void send_ping(void) {
 	sprintf(buffer, "%f", my_position[2]);
-	printf("%s\n", buffer);
 	wb_emitter_send(emitter,buffer,strlen(buffer)); 
 }
 
@@ -180,8 +177,6 @@ void compute_wheel_speeds(int *msl, int *msr)
 	*msl = (u - AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 
-	limit(msl,MAX_SPEED);
-	limit(msr,MAX_SPEED);
 }
 
 
@@ -194,7 +189,7 @@ int main(){
 	int sum_sensors;	// Braitenberg parameters				// Loop counter
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
 	int max_sens;			// Store highest sensor value
-	
+ 	int i;				// Loop counter
  	reset();			// Resetting the robot
 
 	msl = 0; msr = 0; 
@@ -240,7 +235,7 @@ int main(){
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
-                  
+
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
 		msr_w = msr*MAX_SPEED_WEB/1000;
