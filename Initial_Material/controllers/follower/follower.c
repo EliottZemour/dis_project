@@ -21,7 +21,7 @@
 #include <webots/receiver.h>
 
 #define NB_SENSORS           8
-
+#define MAX_SPEED         800     // Maximum speed
 /* Formation flocking parameters */
 #define D                    0.20      // Distance between robots
 #define AXLE_LENGTH          0.052     // Distance between wheels of robot
@@ -77,11 +77,19 @@ static void reset(void) {
 	}
 	char* robot_name; robot_name=(char*) wb_robot_get_name(); 
 
-	sscanf(robot_name,"epuck%d",&robot_id);    // read robot id from the robot's name
+	sscanf(robot_name,"epuck%d(1)",&robot_id);    // read robot id from the robot's name
 	printf("Reset: robot %d\n",robot_id);
 }
 
-
+/*
+ * Keep given int number within interval {-limit, limit}
+ */
+void limit(int *number, int limit) {
+	if (*number > limit)
+		*number = limit;
+	if (*number < -limit)
+		*number = -limit;
+}
 
 void update_leader_measurement(float new_leader_range, float new_leader_bearing, float new_leader_orientation) {
 	leader_range = new_leader_range;
@@ -141,7 +149,6 @@ void compute_wheel_speeds(int nsl, int nsr, int *msl, int *msr) {
 	// Convert to wheel speeds!
 	*msl = (int)((u - AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
 	*msr = (int)((u + AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
-	
 
 }
 
@@ -181,9 +188,9 @@ int main(){
 		theta_init += my_position[2];
             	if (theta_init > M_PI) theta_init -= 2.0*M_PI;
             	if (theta_init < -M_PI) theta_init += 2.0 * M_PI;
-		double range_init = sqrt((1/message_rssi));
-		relative_pos_init[0] = range_init*cos(theta_init);  // relative x pos
-		relative_pos_init[1] = -1.0 * range_init*sin(theta_init);   // relative y pos
+		double range_init = sqrtf((1/message_rssi));
+		relative_pos_init[0] = range_init*cosf(theta_init);  // relative x pos
+		relative_pos_init[1] = -1.0 * range_init*sinf(theta_init);   // relative y pos
 		
 		goal_range = range_init;
 		goal_bearing = -atan2(relative_pos_init[0],relative_pos_init[1]);
@@ -218,6 +225,7 @@ int main(){
             	while (wb_receiver_get_queue_length(receiver) > 0) {
             		inbuffer = (char*) wb_receiver_get_data(receiver);
             		sscanf(inbuffer, "%f", &leader_heading);
+            		//printf("%f\n", leader_heading);
             		message_direction = wb_receiver_get_emitter_direction(receiver);
             		message_rssi = wb_receiver_get_signal_strength(receiver);
             		double y = message_direction[2];
