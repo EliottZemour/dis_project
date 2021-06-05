@@ -149,8 +149,8 @@ void compute_wheel_speeds(int nsl, int nsr, int *msl, int *msr) {
 	// Convert to wheel speeds!
 	*msl = (int)((u - AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
 	*msr = (int)((u + AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
-          //limit(msl, MAX_SPEED);
-          //limit(msr, MAX_SPEED);
+    //limit(msl, MAX_SPEED);
+	//limit(msr, MAX_SPEED);
 }
 
 int main(){
@@ -227,7 +227,6 @@ int main(){
             	while (wb_receiver_get_queue_length(receiver) > 0) {
             		inbuffer = (char*) wb_receiver_get_data(receiver);
             		sscanf(inbuffer, "%f", &leader_heading);
-            		printf("%f\n", leader_heading);
             		message_direction = wb_receiver_get_emitter_direction(receiver);
             		message_rssi = wb_receiver_get_signal_strength(receiver);
             		double y = message_direction[2];
@@ -259,6 +258,7 @@ int main(){
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
 		msr_w = msr*MAX_SPEED_WEB/1000;
+
 		wb_motor_set_velocity(left_motor, msl_w);
 		wb_motor_set_velocity(right_motor, msr_w);
 		//wb_differential_wheels_set_speed(msl,msr);

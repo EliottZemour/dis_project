@@ -20,12 +20,14 @@
 #include <webots/supervisor.h>
 
 #define ROBOTS 5
-#define TIME_STEP 16	
+#define TIME_STEP 64	
 
 static WbNodeRef robs[ROBOTS];
 static WbFieldRef robs_translation[ROBOTS];
 static WbFieldRef robs_rotation[ROBOTS];
 WbDeviceTag emitter_device;
+
+static FILE *fp;
 
 float loc[ROBOTS][3];
 
@@ -35,15 +37,16 @@ float global_x,global_z;
 float rel_x[ROBOTS-1];
 float rel_z[ROBOTS-1];
 
-float center[2] = {0, 0};
-float center_old[2] = {0, 0};
+float center[2] = {0.0, 0.0};
+float center_old[2] = {0.0, 0.0};
 
-float d_max = 6.28 *0.0205  * 0.016;
+float d_max = 6.28 * 0.0205 * 0.064;
 
 /* Good relative positions for each robot */
 double good_rp[ROBOTS][2] = { {0.0,0.0}, {0.1,0.0}, {-1.0,0.0}, {0.2,0.0}, {-0.2,0.0} };
 
 float dfo_metric, v_metric; // The elements to multiply for the formation metric
+float fit_formation;
 
 float dbl_nrobots = (float) ROBOTS; // float version of nrobots for division in metric
 
@@ -88,12 +91,35 @@ void compute_veloc_metric() {
     center[1] /= dbl_nrobots;
 
     v_metric = sqrtf(powf(center_old[0]-center[0],2.0) + powf(center_old[1]-center[1],2.0));
+    //printf("vmetric = %f\t dmax = %f\n", v_metric, d_max);
     v_metric /= d_max;
+}
+
+void controller_init_log(const char* filename)
+{
+
+  fp = fopen(filename,"w");
+  
+   fprintf(fp, "time; dfo metric; v_metric; fit_formation\n");
+  
+
+
+}
+
+
+// printing of data in the log file "flocking_metric.csv"
+void controller_print_log(double time)
+{
+
+  if( fp != NULL)
+  {
+    fprintf(fp, "%g;  %g; %g; %g\n",
+            time, dfo_metric, v_metric, fit_formation);
+}
 }
 
 int main(int argc, char *args[]) {
 
-	float fit_formation;
 	int i;
 	int print_enabled = 0;
 
@@ -101,13 +127,13 @@ int main(int argc, char *args[]) {
 		print_enabled = atoi(args[1]);
 		printf("Print: %d\n", print_enabled);
 	}
-
+	controller_init_log("formation_metric.csv");
 	reset();
 
 	for(;;) { 
 		wb_robot_step(TIME_STEP); /* run one step */
 		
-		if (t % 10 == 0) {
+		//if (t % 10 == 0) {
 			center_old[0] = center[0];
 			center_old[1] = center[1];
 			for (i=1;i<ROBOTS;i++) {
@@ -131,13 +157,14 @@ int main(int argc, char *args[]) {
 
 			compute_dist_metric();
 			compute_veloc_metric();
-			//printf("dfo metric: %.2f\n",dfo_metric);
-			//printf("veloc metric: %.2f\n",v_metric);
+			printf("dfo metric: %.2f\n",dfo_metric);
+			printf("veloc metric: %.2f\n",v_metric);
 			fit_formation = dfo_metric * v_metric;
 
 			if (print_enabled)
 				printf("Performance metric: %.2f\n",fit_formation);
-		}
+		//}
+		controller_print_log(t/1000.0);
 		t += TIME_STEP;	
 	}
 	return 0;

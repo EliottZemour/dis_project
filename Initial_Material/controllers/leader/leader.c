@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include "trajectories.h"
 #include <webots/robot.h>
 /*Webots 2018b*/
 #include <webots/motor.h>
@@ -238,6 +237,8 @@ int main(){
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
 		msr_w = msr*MAX_SPEED_WEB/1000;
+		
+
 		wb_motor_set_velocity(dev_left_motor, msl_w);
 		wb_motor_set_velocity(dev_right_motor, msr_w);
     
