@@ -59,7 +59,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[2];		// Speeds calculated with Reynold's rules
 float relative_speed[2];	// Speeds calculated with Reynold's rules
 int initialized;		// != 0 if initial positions have been received
-float migr[2] = {10,10};	        // Migration vector
+float migr[2] = {10,15};	        // Migration vector
 char* robot_name;
 float theta_robots;
 char buffer[255]; // Buffer for emitter
@@ -176,7 +176,8 @@ void compute_wheel_speeds(int *msl, int *msr)
 	// Convert to wheel speeds!
 	*msl = (u - AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
-
+          limit(msl, MAX_SPEED);
+          limit(msr, MAX_SPEED);
 }
 
 
@@ -220,8 +221,8 @@ int main(){
 		update_self_motion(msl,msr);
 		
 
-		speed[0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT ;
-		speed[1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
+		speed[0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT *2.0;
+		speed[1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT*2.0; //y axis of webots is inverted
     
 		// Compute wheels speed from reynold's speed
 		compute_wheel_speeds(&msl, &msr);
