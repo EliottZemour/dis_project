@@ -169,7 +169,7 @@ int main(int argc, char *args[]) {
 	migrz = -10;
 	//migration goal point comes from the controller arguments. It is defined in the world-file, under "controllerArgs" of the supervisor.
 	printf("Migratory instinct : (%f, %f)\n", migrx, migrz);
-    controller_init_log("flocking_metric.csv");
+           controller_init_log("flocking_metric.csv");
 	
 	orient_migr = -atan2f(migrx,migrz);
 	if (orient_migr<0) {
@@ -204,7 +204,7 @@ int main(int argc, char *args[]) {
 			//printf("metric o[t] = %f\n", o_metric);
 			//printf("time:%d, Topology Performance: %f\n", t, fit_cluster);			
 		//}
-        controller_print_log(t/1000.0);
+                		controller_print_log(t/1000.0);
 		t += TIME_STEP;
 	}
 }
