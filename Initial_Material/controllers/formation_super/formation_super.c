@@ -79,9 +79,6 @@ void compute_dist_metric() {
 
 
 void compute_veloc_metric() {
-
-    center_old[0] = center[0];
-    center_old[1] = center[1];
     int i;
     for (i=0; i< ROBOTS; i++) {
         center[0] += loc[i][0];
