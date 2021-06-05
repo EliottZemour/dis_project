@@ -31,13 +31,13 @@ float pair[N_PAIRS][2];
 float center[2] = {0, 0};
 float center_old[2] = {0, 0};
 float d_max = 6.28 * 0.020 * 0.016;
-
+static FILE *fp;
 int offset;				// Offset of robots number
 float migrx, migrz;			// Migration vector
 float orient_migr; 			// Migration orientation
 int t;
 
-float o_metric, dfl_metric, v_metric; // The elements to multiply for the perf. metric
+float o_metric, dfl_metric, v_metric, fit_cluster; // The elements to multiply for the perf. metric
 
 /*
  * Initialize flock position and devices
@@ -57,7 +57,29 @@ void reset(void) {
 	}
 }
 
+// Initialization of the log file
 
+void controller_init_log(const char* filename)
+{
+
+  fp = fopen(filename,"w");
+  
+   fprintf(fp, "time; o_metric; dfl_metric; v_metric; fit_cluster\n");
+  
+
+
+}
+
+// printing of data in the log file "flocking_metric.csv"
+void controller_print_log(double time)
+{
+
+  if( fp != NULL)
+  {
+    fprintf(fp, "%g;  %g; %g; %g; %g\n",
+            time, o_metric, dfl_metric, v_metric, fit_cluster);
+}
+}
 
 void compute_pair_matrix() {
     int i,j,k;
@@ -147,7 +169,7 @@ int main(int argc, char *args[]) {
 	migrz = -10;
 	//migration goal point comes from the controller arguments. It is defined in the world-file, under "controllerArgs" of the supervisor.
 	printf("Migratory instinct : (%f, %f)\n", migrx, migrz);
-
+           controller_init_log("flocking_metric.csv");
 	
 	orient_migr = -atan2f(migrx,migrz);
 	if (orient_migr<0) {
@@ -158,9 +180,6 @@ int main(int argc, char *args[]) {
 	reset();
           
 	
-	// Compute reference fitness values
-	
-	float fit_cluster;			// Performance metric for flocking
 		
 	for(;;) {
 		wb_robot_step(TIME_STEP);
@@ -185,6 +204,7 @@ int main(int argc, char *args[]) {
 			//printf("metric o[t] = %f\n", o_metric);
 			//printf("time:%d, Topology Performance: %f\n", t, fit_cluster);			
 		//}
+                		controller_print_log(t/1000.0);
 		t += TIME_STEP;
 	}
 }
