@@ -38,10 +38,10 @@ float rel_z[ROBOTS-1];
 float center[2] = {0, 0};
 float center_old[2] = {0, 0};
 
-float d_max = 6.28 * 0.020 * 0.016;
+float d_max = 6.28 *0.0205  * 0.016;
 
 /* Good relative positions for each robot */
-double good_rp[ROBOTS][2] = { {0.0,0.0}, {-0.15,-0.15}, {0.0,-0.30}, {0.15,-0.15}, {0.0,-2.45} };
+double good_rp[ROBOTS][2] = { {0.0,0.0}, {0.1,0.0}, {-1.0,0.0}, {0.2,0.0}, {-0.2,0.0} };
 
 float dfo_metric, v_metric; // The elements to multiply for the formation metric
 
@@ -71,13 +71,17 @@ void compute_dist_metric() {
 	dfo_metric = 0.0;
 	int i;
 	for (i=1; i<ROBOTS; i++) {
-		dfo_metric += sqrt(pow(rel_x[i-1]-good_rp[i][0],2) + pow(rel_z[i-1]-good_rp[i][1],2));
+		dfo_metric += sqrtf(powf(rel_x[i-1]-good_rp[i][0],2) + powf(rel_z[i-1]-good_rp[i][1],2));
 	}
-	dfo_metric = 1.0 + dfo_metric / (dbl_nrobots-1);
+	dfo_metric = 1.0 + dfo_metric / (dbl_nrobots-1.0);
 	dfo_metric = 1.0 / dfo_metric;
 }
 
-void compute_formation_center() {
+
+void compute_veloc_metric() {
+
+    center_old[0] = center[0];
+    center_old[1] = center[1];
     int i;
     for (i=0; i< ROBOTS; i++) {
         center[0] += loc[i][0];
@@ -85,11 +89,9 @@ void compute_formation_center() {
     }
     center[0] /= dbl_nrobots;
     center[1] /= dbl_nrobots;
-}
 
-void compute_veloc_metric() {
-      v_metric = sqrtf(powf(center_old[0]-center[0],2.0) + powf(center_old[1]-center[1],2.0));
-      v_metric /= d_max;
+    v_metric = sqrtf(powf(center_old[0]-center[0],2.0) + powf(center_old[1]-center[1],2.0));
+    v_metric /= d_max;
 }
 
 int main(int argc, char *args[]) {
@@ -125,14 +127,15 @@ int main(int argc, char *args[]) {
 				global_x = loc[i][0] - loc[0][0];
 				global_z = loc[i][1] - loc[0][1];
 				/* Calculate relative coordinates */
-				rel_x[i-1] = -global_x*cos(loc[i][2]) + global_z*sin(loc[i][2]);
-				rel_z[i-1] = global_x*sin(loc[i][2]) + global_z*cos(loc[i][2]);
+				rel_x[i-1] = -global_x*cosf(loc[i][2]) + global_z*sinf(loc[i][2]);
+				rel_z[i-1] = global_x*sinf(loc[i][2]) + global_z*cosf(loc[i][2]);
 
 			}
-			compute_formation_center();
+
 			compute_dist_metric();
 			compute_veloc_metric();
-			
+			//printf("dfo metric: %.2f\n",dfo_metric);
+			//printf("veloc metric: %.2f\n",v_metric);
 			fit_formation = dfo_metric * v_metric;
 
 			if (print_enabled)
