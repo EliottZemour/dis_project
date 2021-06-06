@@ -1,12 +1,3 @@
-/*****************************************************************************/
-/* File:         leader.cc                                                   */
-/* Version:      1.1 -> New double key recognition                           */
-/* Date:         12-Oct-15                                                   */
-/* Description:  Allows to remote control a robot using the arrow keys       */
-/*                                                                           */
-/* Author: 	 22-Oct-04 by nikolaus.correll@epfl.ch                       */
-/* Last revision:12-oct-15 by Florian Maushart				     */
-/*****************************************************************************/
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -44,7 +35,7 @@ WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 
 
-int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3}; // Braitenberg Matrix
+int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3};	//Braitenberg matrix for obstacle avoidance
 
 
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
@@ -180,7 +171,6 @@ int main(){
 	float msl_w, msr_w;
 	/*Webots 2018b*/
 	
-	
 	int sum_sensors;	// Braitenberg parameters
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
 	int max_sens;			// Store highest sensor value	
@@ -191,8 +181,8 @@ int main(){
 	
 	// Forever
 	for(;;){
-                      // Braitenberg
-		int sensor_nb;
+
+                      int sensor_nb;
 		int bmsl = 0;
 		int bmsr = 0;
 		sum_sensors = 0;
@@ -203,6 +193,10 @@ int main(){
 		  bmsl += distances[sensor_nb] * Interconn[sensor_nb + NB_SENSORS];
 		}
 		bmsl /= 400; bmsr /= 400;        // Normalizing speeds
+
+		// Adapt Braitenberg values (empirical tests)
+		bmsl/=MIN_SENS; bmsr/=MIN_SENS;
+		bmsl+=125; bmsr+=120;
               
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
@@ -222,10 +216,13 @@ int main(){
     
 		// Adapt speed instinct to distance sensor values
 		if (sum_sensors > NB_SENSORS*MIN_SENS) {
-			msl -= msl*max_sens/(2*MAX_SENS);
-			msr -= msr*max_sens/(2*MAX_SENS);
-		}
-    
+			//msl -= msl*max_sens/(2*MAX_SENS);
+			//msr -= msr*max_sens/(2*MAX_SENS);
+			msl -= msl*8*max_sens/(9*MAX_SENS);
+			msr -= msr*8*max_sens/(9*MAX_SENS);
+		}  
+
+		  
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
