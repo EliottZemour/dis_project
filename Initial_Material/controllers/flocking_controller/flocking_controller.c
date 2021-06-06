@@ -43,7 +43,7 @@ WbDeviceTag dev_left_motor; //handler for left wheel of the robot
 WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 
-int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // for obstacle avoidance
+int e_puck_matrix[16] = {46,46,36,20,18,-38,-56,-76,-72,-58,-36,18,20,34,49,47};; // for obstacle avoidance
 
 //static float l_weight[NB_SENSORS] = {-1, -1.75, -0.2, 0, 0, 0.2, 1.75, 1};
 //static float r_weight[NB_SENSORS] = {1, 1.75, 0.2, 0, 0, -0.2, -1.75, -1};
@@ -355,7 +355,7 @@ int main(){
   		//printf("bmsl = %d\n", bmsl);
   		//}
 		//bmsl+=100; bmsr+=50;
-		bmsl+=66; bmsr+=72;
+		bmsl+=150; bmsr+=120;
 		//bmsl*=10; bmsr*=10;
               
 		/* Send and get information */
