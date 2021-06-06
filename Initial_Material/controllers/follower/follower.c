@@ -124,7 +124,7 @@ void update_self_motion(int msl, int msr) {
  * Calculates the wheel speeds according the goal range and bearing
  */
 void compute_wheel_speeds(int *msl, int *msr) {
-	// Define constants
+	// Define empirical constants
 	float Ku = 2.0;
 	float Kw = 5.0;
 	float Kb = 1.0;
@@ -148,7 +148,7 @@ void compute_wheel_speeds(int *msl, int *msr) {
 	// Convert to wheel speeds!
 	*msl = (int)((u - AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
 	*msr = (int)((u + AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
-           limit(msl, MAX_SPEED);
+        limit(msl, MAX_SPEED);
 	limit(msr, MAX_SPEED);
 }
 
@@ -230,7 +230,7 @@ int main(){
 		  bmsr += distances[sensor_nb] * Interconn[sensor_nb];
 		  bmsl += distances[sensor_nb] * Interconn[sensor_nb + NB_SENSORS];
 		}
-		bmsl /= 400; bmsr /= 400;        // Normalizing speeds
+		bmsl /= MIN_SENS; bmsr /= MIN_SENS;        // Normalizing speeds
 		
 		//Self positioning 
 		update_self_motion(msl,msr);
@@ -238,7 +238,7 @@ int main(){
 		
             	while (wb_receiver_get_queue_length(receiver) > 0) {
             	
-                        	// Data reception 
+                        // Data reception 
             		inbuffer = (char*) wb_receiver_get_data(receiver);
             		sscanf(inbuffer, "%f", &leader_heading);
             		message_direction = wb_receiver_get_emitter_direction(receiver);
@@ -269,7 +269,7 @@ int main(){
 		compute_wheel_speeds(&msl, &msr);
                  
 
-                      // Braitenberg
+                // Braitenberg
 		msl += bmsl;
 		msr += bmsr;
 		limit(&msl,MAX_SPEED);
