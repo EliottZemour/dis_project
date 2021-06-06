@@ -69,18 +69,18 @@ The Matlab file that can be found at Initial_Material > matlab > plotmain_x.m sh
 
 * ***Obstacle***:
   The code for the flocking in the obstacle world can be found at Initial_Material >  controllers > flocking.
-  To run this part, open the world file `obstacle-test.wbt`. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes. The supervisor writes the metric for this part in the flocking_metric.csv file.
+  To run this part, open the world file `obstacle_test.wbt`. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes. The supervisor writes the metric for this part in the flocking_metric.csv file.
 * ***Crossing***:
   The code for the flocking in the crossing world can be found at Initial_Material >  controllers > crossing.
-  To run this part, open the world file `crossing-test.wbt`. **XAV EXPLIQUES QUOI METTRE EN SUPER ET CONTROLLER EN FONCTION DU ROBOT ID**. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes.
+  To run this part, open the world file `crossing_test.wbt`. **XAV EXPLIQUES QUOI METTRE EN SUPER ET CONTROLLER EN FONCTION DU ROBOT ID**. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes.
 
 
 
 ### Formation
 
 * ***Obstacle***:
-  The code for the formation in the obstacle world can be found at Initial_Material >  controllers > flocking.
-  To run this part, open the world file `obstacle-test.wbt`. Then select `formation_super.c` as controller in the supervisor node and  `formation_controller.c` as controller for the epuck nodes. The supervisor writes the metric for this part in the formation_metric.csv file.
+  The code for the formation in the obstacle world can be found at Initial_Material >  controllers > leader and Initial_Material >  controllers > follower.
+  To run this part, open the world file `obstacle_test.wbt`. Then select `formation_super.c` as controller in the supervisor node and  `leader.c` as controller for the epuck0. Followers that are the other epucks have the controller 'follower.c'. The supervisor writes the metric for this part in the formation_metric.csv file.
 
 ## Part III: Particle Swarm Optimization
 
