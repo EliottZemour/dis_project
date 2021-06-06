@@ -60,6 +60,7 @@ The structure of the repository/submitted zipfile is the following:
 
 ## Part III: Particle Swarm Optimization
 
+```
 Initial_Material/
     ├─ controllers/
     │  ├─ localization/
@@ -72,3 +73,4 @@ Initial_Material/
     │  │  ├─ formation_controller.c
     │  │  ├─ formation_super.c
     ├─ worlds/
+```
