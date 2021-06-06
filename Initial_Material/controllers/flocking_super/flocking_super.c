@@ -34,7 +34,6 @@ float d_max = 6.28 * 0.020 * 0.016;
 static FILE *fp;
 int offset;				// Offset of robots number
 float migrx, migrz;			// Migration vector
-float orient_migr; 			// Migration orientation
 int t;
 
 float o_metric, dfl_metric, v_metric, fit_cluster; // The elements to multiply for the perf. metric
@@ -113,8 +112,8 @@ void compute_orient_metric() {
           i = pair[k][0];
           j = pair[k][1];
           Hdiff = ( loc[i][2] -  loc[j][2] );
-          Hdiff = Hdiff > M_PI ? 2*M_PI-Hdiff : Hdiff; 
-          Hdiff = Hdiff < -M_PI ? 2*M_PI+Hdiff : Hdiff; 
+          Hdiff = Hdiff >  M_PI ? Hdiff-2*M_PI : Hdiff; 
+          Hdiff = Hdiff < -M_PI ? Hdiff+2*M_PI : Hdiff; 
           //printf("Hdiff/pi  = %f\n", fabsf(Hdiff)/M_PI);
           o_metric += fabsf(Hdiff)/M_PI;
       }
@@ -140,7 +139,7 @@ void compute_dist_metric() {
           i = pair[k][0];
           j = pair[k][1];
           delta_x = sqrtf(powf(loc[i][0]-loc[j][0],2.0) + powf(loc[i][1]-loc[j][1],2.0));
-          dfl_metric += MIN(delta_x/0.14, 1/powf(1.14+delta_x,2.0))/n;
+          dfl_metric += MIN(delta_x/0.14, 1/powf(1-0.14+delta_x,2.0))/n;
       }  
       //printf("denominator = %f\n", denominator);
       dfl_metric /= denominator;
@@ -171,11 +170,6 @@ int main(int argc, char *args[]) {
 	printf("Migratory instinct : (%f, %f)\n", migrx, migrz);
            controller_init_log("flocking_metric.csv");
 	
-	orient_migr = -atan2f(migrx,migrz);
-	if (orient_migr<0) {
-		orient_migr+=2*M_PI; // Keep value within 0, 2pi
-	}
-	
 	compute_pair_matrix();
 	reset();
           
@@ -197,12 +191,14 @@ int main(int argc, char *args[]) {
 			compute_dist_metric();
 			compute_veloc_metric();
 			
+			/*
 			fit_cluster = o_metric * dfl_metric * v_metric;
-			//printf("==========================================\n");
-			//printf("metric v[t] = %f\n", v_metric);
-			//printf("metric dfl[t] = %f\n", dfl_metric);
-			//printf("metric o[t] = %f\n", o_metric);
-			//printf("time:%d, Topology Performance: %f\n", t, fit_cluster);			
+			printf("==========================================\n");
+			printf("metric v[t] = %f\n", v_metric);
+			printf("metric dfl[t] = %f\n", dfl_metric);
+			printf("metric o[t] = %f\n", o_metric);
+			printf("time:%d, Topology Performance: %f\n", t, fit_cluster);	
+			*/		
 		//}
                 		controller_print_log(t/1000.0);
 		t += TIME_STEP;
