@@ -36,29 +36,29 @@
 
 #define MIGRATION_WEIGHT    (0.01/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
-
 #define ABS(x) ((x>=0)?(x):-(x))
 
 /*Webots 2018b*/
 WbDeviceTag dev_left_motor; //handler for left wheel of the robot
 WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
-int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3};
+
+
+int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3}; // Braitenberg Matrix
+
+
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
 WbDeviceTag emitter;		// Handle for the emitter node
-int robot_id;	// Unique and normalized (between 0 and FLOCK_SIZE-1) robot ID
+
 
 float relative_pos[3];	// relative X, Z, Theta of all robots
 float prev_relative_pos[3];	// Previous relative  X, Z, Theta values
-float my_position[3]= {-2.9 , 0, -1.5708};     		// X, Z, Theta of the current robot
+float my_position[3]= {-2.9 , 0, -1.5708};     		// X, Z, Theta of the current robot with initialization
 float prev_my_position[3];  		// X, Z, Theta of the current robot in the previous time step
 float speed[2];		// Speeds calculated with Reynold's rules
 float relative_speed[2];	// Speeds calculated with Reynold's rules
 int initialized;		// != 0 if initial positions have been received
 float migr[2] = {10,0};	        // Migration vector
-char* robot_name;
-float theta_robots;
 char buffer[255]; // Buffer for emitter
 
 	   
@@ -83,19 +83,14 @@ static void reset() {
 		ds[i]=wb_robot_get_device(s);	// the device name is specified in the world file
 		s[2]++;				// increases the device number
 	}
-	robot_name=(char*) wb_robot_get_name(); 
 
 	for(i=0;i<NB_SENSORS;i++)
 		wb_distance_sensor_enable(ds[i],64);
 
-
-	//Reading the robot's name. Pay attention to name specification when adding robots to the simulation!
-	sscanf(robot_name,"epuck%d(1)",&robot_id); // read robot id from the robot's name
-
   
 	initialized = 0;		  // Set initialization to 0 (= not yet initialized)
   
-        printf("Reset: robot %d\n",robot_id);
+        printf("Reset: robot0\n");
         
 
 }
@@ -180,14 +175,15 @@ void compute_wheel_speeds(int *msl, int *msr)
 // the main function
 int main(){ 
 	int msl, msr;			// Wheel speeds
+	
 	/*Webots 2018b*/
 	float msl_w, msr_w;
 	/*Webots 2018b*/
-	int sum_sensors;	// Braitenberg parameters				// Loop counter
+	
+	
+	int sum_sensors;	// Braitenberg parameters
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
-	int max_sens;			// Store highest sensor value
- 	int i;				// Loop counter
- 	float angle;
+	int max_sens;			// Store highest sensor value	
  	reset();			// Resetting the robot
 
 	msl = 0; msr = 0; 
@@ -195,7 +191,7 @@ int main(){
 	
 	// Forever
 	for(;;){
-
+                      // Braitenberg
 		int sensor_nb;
 		int bmsl = 0;
 		int bmsr = 0;
@@ -217,11 +213,11 @@ int main(){
 		prev_my_position[2] = my_position[2];
 		update_self_motion(msl,msr);
 		
-
+                      // Migratory urge
 		speed[0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT *2.0;
 		speed[1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT*2.0; //y axis of webots is inverted
     
-		// Compute wheels speed from reynold's speed
+		// Compute wheels speed relatively to migratory urge
 		compute_wheel_speeds(&msl, &msr);
     
 		// Adapt speed instinct to distance sensor values
