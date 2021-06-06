@@ -54,17 +54,30 @@ PSO/
     
 ```
 
+
+
 ## Part I: Localization Techniques for Individual Robots
 
 The code for part I can be found in Initial_Material >  controllers > localization.
-To run this part, open the world file `localization.wbt`. It should have `localization_super.c ` as controller in the supervisor node and  `localization_controller.c ` as controller in the epuck node. This should create csv files for the odometry results.
+To run this part, open the world file `localization.wbt`. It should have `localization_super.c` as controller in the supervisor node and  `localization_controller.c` as controller for the epuck node. This should create csv files for the odometry results.
 The Matlab file that can be found at Initial_Material > matlab > plotmain.m should reproduce the plots presented in the report.
 
 ## Part II: Spatial Coordination Solutions
 
 ### Flocking
 
+* ***Obstacle***:
+  The code for the flocking in the obstacle world can be found at Initial_Material >  controllers > flocking.
+  To run this part, open the world file `obstacle-test.wbt`. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes.
+* ***Crossing***:
+  The code for the flocking in the crossing world can be found at Initial_Material >  controllers > crossing.
+  To run this part, open the world file `crossing-test.wbt`. **XAV EXPLIQUES QUOI METTRE EN SUPER ET CONTROLLER EN FONCTION DU ROBOT ID**. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes.
+
+
+
 ### Formation
+
+
 
 ## Part III: Particle Swarm Optimization
 
