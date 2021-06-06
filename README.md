@@ -62,6 +62,7 @@ The code for part I can be found in Initial_Material >  controllers > localizati
 To run this part, open the world file `localization.wbt`. It should have `localization_super.c` as controller in the supervisor node and  `localization_controller.c` as controller for the epuck node. This should create a csv file for the odometry, gps and kalman results: localization.csv. The supervisor writes the metric for this part in the pose.csv file.
 
 The Matlab file that can be found at Initial_Material > matlab > plotmain_x.m should reproduce the plots presented in the report.
+Note that the `linear_algebra.c/h` files are helper files for the Kalman algorithm.
 
 ## Part II: Spatial Coordination Solutions
 
@@ -79,10 +80,12 @@ The Matlab file that can be found at Initial_Material > matlab > plotmain_x.m sh
 ### Formation
 
 * ***Obstacle***:
-  The code for the formation in the obstacle world can be found at Initial_Material >  controllers > leader and Initial_Material >  controllers > follower.
-  To run this part, open the world file `obstacle_test.wbt`. Then select `formation_super.c` as controller in the supervisor node and  `leader.c` as controller for the epuck0. Followers that are the other epucks have the controller 'follower.c'. The supervisor writes the metric for this part in the formation_metric.csv file.
+  The code for the formation in the obstacle world can be found at Initial_Material > controllers > leader and Initial_Material >  controllers > follower.
+  To run this part, open the world file `obstacle_test.wbt`. Then select `formation_super.c` as controller in the supervisor node and  `leader.c` as controller for the epuck0. Followers that are the other epucks have the controller `follower.c`. The supervisor writes the metric for this part in the formation_metric.csv file.
 
-## Part III: Particle Swarm Optimization
+## Part III: Particle Swarm Optimization (PSO)
 
-
+The code for the PSO part can be found at PSO > controllers. It is divided in three files that communicate with each other.
+The `pso.c` file implements the main PSO loop (initialize swarm, move particles, evaluate, find best particle). The supervisor `pso_obstacle_super.c` repositions the particles at the initial position at each iteration, then send candidate solutions to robots (Reynolds rules weights & thresholds), and calculates fitness. 
+The controller `pso_obstacle_controller.c` receives the Reynold weights from the supervisor, and run the controller with those weights.
 
