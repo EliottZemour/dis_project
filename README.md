@@ -59,8 +59,9 @@ PSO/
 ## Part I: Localization Techniques for Individual Robots
 
 The code for part I can be found in Initial_Material >  controllers > localization.
-To run this part, open the world file `localization.wbt`. It should have `localization_super.c` as controller in the supervisor node and  `localization_controller.c` as controller for the epuck node. This should create csv files for the odometry results.
-The Matlab file that can be found at Initial_Material > matlab > plotmain.m should reproduce the plots presented in the report.
+To run this part, open the world file `localization.wbt`. It should have `localization_super.c` as controller in the supervisor node and  `localization_controller.c` as controller for the epuck node. This should create a csv file for the odometry, gps and kalman results: localization.csv. The supervisor writes the metric for this part in the pose.csv file.
+
+The Matlab file that can be found at Initial_Material > matlab > plotmain_x.m should reproduce the plots presented in the report.
 
 ## Part II: Spatial Coordination Solutions
 
@@ -68,7 +69,7 @@ The Matlab file that can be found at Initial_Material > matlab > plotmain.m shou
 
 * ***Obstacle***:
   The code for the flocking in the obstacle world can be found at Initial_Material >  controllers > flocking.
-  To run this part, open the world file `obstacle-test.wbt`. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes.
+  To run this part, open the world file `obstacle-test.wbt`. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes. The supervisor writes the metric for this part in the flocking_metric.csv file.
 * ***Crossing***:
   The code for the flocking in the crossing world can be found at Initial_Material >  controllers > crossing.
   To run this part, open the world file `crossing-test.wbt`. **XAV EXPLIQUES QUOI METTRE EN SUPER ET CONTROLLER EN FONCTION DU ROBOT ID**. Then select `flocking_super.c` as controller in the supervisor node and  `flocking_controller.c` as controller for the epuck nodes.
@@ -77,7 +78,9 @@ The Matlab file that can be found at Initial_Material > matlab > plotmain.m shou
 
 ### Formation
 
-
+* ***Obstacle***:
+  The code for the formation in the obstacle world can be found at Initial_Material >  controllers > flocking.
+  To run this part, open the world file `obstacle-test.wbt`. Then select `formation_super.c` as controller in the supervisor node and  `formation_controller.c` as controller for the epuck nodes. The supervisor writes the metric for this part in the formation_metric.csv file.
 
 ## Part III: Particle Swarm Optimization
 
