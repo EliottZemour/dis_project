@@ -18,7 +18,7 @@
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
 /*Webots 2018b*/
-#define FLOCK_SIZE	  10	  // Size of flock
+#define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  16	  // [ms] Length of time step
 
 
@@ -27,14 +27,14 @@
 #define WHEEL_RADIUS		0.020	// Wheel radius (meters)
 #define DELTA_T		0.016	// Timestep (seconds)
 
-#define MARGINAL_THRESHOLD  0.6      // Robots only flock with the neighbors which are closer than this threshold ANCIENNE: 0.6
-#define RULE1_THRESHOLD     0.3      // Threshold to activate aggregation rule. default 0.20 ANCIENNE:0.3
+#define MARGINAL_THRESHOLD  0.6        // Robots only flock with the neighbors which are closer than this threshold ANCIENNE: 0.6
+#define RULE1_THRESHOLD     0.3        // Threshold to activate aggregation rule. default 0.20 ANCIENNE:0.3
 #define RULE1_WEIGHT        0.045      // Weight of aggregation rule. default 0.6/10 ANCIENNE:0.99
-#define RULE2_THRESHOLD     0.15      // Threshold to activate dispersion rule. default 0.15 ANCIENNE:0.05
+#define RULE2_THRESHOLD     0.15       // Threshold to activate dispersion rule. default 0.15 ANCIENNE:0.05
 #define RULE2_WEIGHT        (0.002/10) // Weight of dispersion rule. default 0.02/10 ANCIENNE:0.15/10
-#define RULE3_WEIGHT        (1.0/10) // Weight of consistency rule. default 1.0/10 ANCIENNE:0.15/10
+#define RULE3_WEIGHT        (1.0/10)   // Weight of consistency rule. default 1.0/10 ANCIENNE:0.15/10
 #define MIGRATION_WEIGHT    (0.015/10) // Wheight of attraction towards the common goal. default 0.01/10 ANCIENNE:0.05/10
-#define MIGRATORY_URGE 1              // Tells the robots if they should just go forward or move towards a specific migratory direction
+#define MIGRATORY_URGE 1               // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
 
@@ -43,7 +43,7 @@ WbDeviceTag dev_left_motor; //handler for left wheel of the robot
 WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 
-int e_puck_matrix[16] = {46,46,36,20,18,-38,-56,-76,-72,-58,-36,18,20,34,49,47};; // for obstacle avoidance
+int e_puck_matrix[16] = {46,46,36,20,18,-38,-56,-76,-72,-58,-36,18,20,34,49,47}; // for obstacle avoidance
 
 //static float l_weight[NB_SENSORS] = {-1, -1.75, -0.2, 0, 0, 0.2, 1.75, 1};
 //static float r_weight[NB_SENSORS] = {1, 1.75, 0.2, 0, 0, -0.2, -1.75, -1};
@@ -109,7 +109,7 @@ static void reset() {
   
            printf("Reset: robot %d\n",robot_id_u);
         
-           migr[0] = -3;
+           migr[0] = 0;
            migr[1] = -10;
         
 }
@@ -396,8 +396,8 @@ int main(){
 		if (sum_sensors > NB_SENSORS*MIN_SENS) {
 			//msl -= msl*max_sens/(2*MAX_SENS);
 			//msr -= msr*max_sens/(2*MAX_SENS);
-			msl -= msl*4*max_sens/(5*MAX_SENS);
-			msr -= msr*4*max_sens/(5*MAX_SENS);
+			msl -= msl*8*max_sens/(9*MAX_SENS);
+			msr -= msr*8*max_sens/(9*MAX_SENS);
 		}    
 		// Add Braitenberg
 		msl += bmsl;
