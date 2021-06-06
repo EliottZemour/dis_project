@@ -107,14 +107,17 @@ f = figure('Name','Webots : Odometry using wheel encoders [Rad]');
 
 % Plot x -y plan : odometry vs ground truth (gps)
 plot(data.gps_x(3:end) , data.gps_y(3:end)); hold on;
-plot(data.odo_enc_x , data.odo_enc_y);
+plot(data.odo_enc_x , data.odo_enc_y, '.');
+plot(data.kalman_acc_x , data.kalman_acc_y, '.');
 title('x -y plan : odometry vs ground truth (gps)');
-legend('Ground Thruth : GPS', 'Odometry : Wheel encoders');
+legend('Ground Thruth : GPS', 'Odometry : Wheel encoders', 'Kalman filter : accelerometer');
 xlabel('x [m]'); ylabel('y [m]');
 x_lim = [min([data.odo_enc_x;  data.gps_x]),max([data.odo_enc_x;  data.gps_x])];
 y_lim = [min([data.odo_enc_y;  data.gps_y]),max([data.odo_enc_y;  data.gps_y])];
 xlim(x_lim + [-0.05,0.05]*(x_lim(2)-x_lim(1)));ylim(y_lim + [-0.05,0.05]*(y_lim(2)-y_lim(1)));
 axis equal;
+
+
 
 %% Part F : Plot the Kalman filter computed using the wheel encoders on Webots vs time
 
@@ -153,6 +156,7 @@ f = figure('Name','Webots : Kalman using wheel encoders [Rad]');
 % Plot x -y plan : Kalman filter vs ground truth (gps)
 plot(data.gps_x(3:end) , data.gps_y(3:end), '-'); hold on;
 plot(data.kalman_enc_x , data.kalman_enc_y, '.');
+
 title('x -y plan : kalman filter for wheel encoder vs ground truth (gps)');
 legend('Ground Thruth : GPS', 'Kalman : Wheel encoders');
 xlabel('x [m]'); ylabel('y [m]');
