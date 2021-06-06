@@ -18,7 +18,7 @@
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
 /*Webots 2018b*/
-#define FLOCK_SIZE	  5	  // Size of flock
+#define FLOCK_SIZE	  10	  // Size of flock
 #define TIME_STEP	  16	  // [ms] Length of time step
 
 
@@ -27,13 +27,13 @@
 #define WHEEL_RADIUS		0.020	// Wheel radius (meters)
 #define DELTA_T		0.016	// Timestep (seconds)
 
-#define MARGINAL_THRESHOLD  0.4      // Robots only flock with the neighbors which are closer than this threshold ANCIENNE: 0.6
-#define RULE1_THRESHOLD     0.2      // Threshold to activate aggregation rule. default 0.20 ANCIENNE:0.3
-#define RULE1_WEIGHT        0.03      // Weight of aggregation rule. default 0.6/10 ANCIENNE:0.99
+#define MARGINAL_THRESHOLD  0.6      // Robots only flock with the neighbors which are closer than this threshold ANCIENNE: 0.6
+#define RULE1_THRESHOLD     0.3      // Threshold to activate aggregation rule. default 0.20 ANCIENNE:0.3
+#define RULE1_WEIGHT        0.045      // Weight of aggregation rule. default 0.6/10 ANCIENNE:0.99
 #define RULE2_THRESHOLD     0.15      // Threshold to activate dispersion rule. default 0.15 ANCIENNE:0.05
-#define RULE2_WEIGHT        (0.03/10) // Weight of dispersion rule. default 0.02/10 ANCIENNE:0.15/10
+#define RULE2_WEIGHT        (0.002/10) // Weight of dispersion rule. default 0.02/10 ANCIENNE:0.15/10
 #define RULE3_WEIGHT        (1.0/10) // Weight of consistency rule. default 1.0/10 ANCIENNE:0.15/10
-#define MIGRATION_WEIGHT    (0.01/10) // Wheight of attraction towards the common goal. default 0.01/10 ANCIENNE:0.05/10
+#define MIGRATION_WEIGHT    (0.015/10) // Wheight of attraction towards the common goal. default 0.01/10 ANCIENNE:0.05/10
 #define MIGRATORY_URGE 1              // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -64,10 +64,9 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
 int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received
-float migr[2] = {0,-1};	        // Migration vector
+float migr[2];	        // Migration vector
 char* robot_name;
 
-float theta_robots[FLOCK_SIZE];
 
 /*
  * Reset the robot's devices and get its ID
@@ -110,8 +109,7 @@ static void reset() {
   
            printf("Reset: robot %d\n",robot_id_u);
         
-           // for the crossing part
-           migr[0] = 0;
+           migr[0] = -3;
            migr[1] = -10;
         
 }
@@ -121,6 +119,16 @@ static void reset() {
  * Keep given int number within interval {-limit, limit}
  */
 void limit(int *number, int limit) {
+	if (*number > limit)
+		*number = limit;
+	if (*number < -limit)
+		*number = -limit;
+}
+
+/*
+ * Keep given int number within interval {-limit, limit}
+ */
+void limitd(double *number, double limit) {
 	if (*number > limit)
 		*number = limit;
 	if (*number < -limit)
@@ -223,7 +231,7 @@ void reynolds_rules() {
     if (k != robot_id) {
       if (sqrt(pow(relative_pos[k][0],2)+pow(relative_pos[k][1],2)) < RULE2_THRESHOLD) {
         for (j = 0; j < 2; j++) {
-            dispersion[j] -= relative_pos[k][j];
+            dispersion[j] -= 1/relative_pos[k][j];
         }
       }
     }
@@ -247,8 +255,14 @@ void reynolds_rules() {
 	  speed[robot_id][1] += 0.02;//*sin(my_position[2] + M_PI/2);
 	} else {
 	//printf("my pos: %g %g\n", my_position[0], my_position[1]);
-		speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
-		speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; // y axis of webots is inverted
+        	           double rel_dist_migr_x = (migr[0]-my_position[0]);
+        	           double rel_dist_migr_y = (migr[1]-my_position[1]);
+        	           
+        	           limitd(&rel_dist_migr_x,5);
+        	           limitd(&rel_dist_migr_y,5);
+	
+		speed[robot_id][0] += rel_dist_migr_x * MIGRATION_WEIGHT;
+		speed[robot_id][1] -= rel_dist_migr_y * MIGRATION_WEIGHT; // y axis of webots is inverted
 	}
 	
   
@@ -355,7 +369,7 @@ int main(){
   		//printf("bmsl = %d\n", bmsl);
   		//}
 		//bmsl+=100; bmsr+=50;
-		bmsl+=150; bmsr+=120;
+		bmsl+=125; bmsr+=120;
 		//bmsl*=10; bmsr*=10;
               
 		/* Send and get information */
@@ -380,17 +394,17 @@ int main(){
     
 		// Adapt speed instinct to distance sensor values
 		if (sum_sensors > NB_SENSORS*MIN_SENS) {
-			msl -= msl*max_sens/(2*MAX_SENS);
-			msr -= msr*max_sens/(2*MAX_SENS);
-			//msl -= msl*4*max_sens/(5*MAX_SENS);
-			//msr -= msr*4*max_sens/(5*MAX_SENS);
+			//msl -= msl*max_sens/(2*MAX_SENS);
+			//msr -= msr*max_sens/(2*MAX_SENS);
+			msl -= msl*4*max_sens/(5*MAX_SENS);
+			msr -= msr*4*max_sens/(5*MAX_SENS);
 		}    
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
 		
-		//limit(&msl,MAX_SPEED);
-        	           //limit(&msr,MAX_SPEED);
+		limit(&msl,MAX_SPEED);
+        	           limit(&msr,MAX_SPEED);
                   
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
