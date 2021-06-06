@@ -45,11 +45,6 @@ WbDeviceTag dev_right_motor; //handler for the right wheel of the robot
 
 int e_puck_matrix[16] = {46,46,36,20,18,-38,-56,-76,-72,-58,-36,18,20,34,49,47}; // for obstacle avoidance
 
-//static float l_weight[NB_SENSORS] = {-1, -1.75, -0.2, 0, 0, 0.2, 1.75, 1};
-//static float r_weight[NB_SENSORS] = {1, 1.75, 0.2, 0, 0, -0.2, -1.75, -1};
-
-//static float l_weight[NB_SENSORS] = {8, 12, 8, 0, 0, -8, -12, -8};
-//static float r_weight[NB_SENSORS] = {-8, -12, -8, 0, 0, 8, 12, 8};
 
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
 WbDeviceTag receiver;		// Handle for the receiver node
@@ -108,7 +103,9 @@ static void reset() {
 	}
   
            printf("Reset: robot %d\n",robot_id_u);
-        
+            
+            
+           // Decision of Migratory target
            migr[0] = 0;
            migr[1] = -10;
         
@@ -186,6 +183,8 @@ void compute_wheel_speeds(int *msl, int *msr) {
 	limit(msr,MAX_SPEED);
 }
 
+
+// Reynolds rules computation
 void reynolds_rules() {
   int i, j, k;                         // Loop counters
   float rel_avg_loc[2] = {0, 0};    // Flock average positions
@@ -242,7 +241,7 @@ void reynolds_rules() {
     consistency[j] = rel_avg_speed[j];
   }
 
-  // aggregation of all behaviors with relative influence determined by weights
+  // Aggregation of all behaviors with relative influence determined by weights
   for (j = 0; j < 2; j++) {
     speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
     speed[robot_id][j] += dispersion[j] * RULE2_WEIGHT;
@@ -251,16 +250,16 @@ void reynolds_rules() {
   speed[robot_id][1] *= -1;  // y axis of webots is inverted
   
   if(MIGRATORY_URGE == 0){
-	  speed[robot_id][0] += 0.02;//*cos(my_position[2] + M_PI/2)+2;
-	  speed[robot_id][1] += 0.02;//*sin(my_position[2] + M_PI/2);
+	  speed[robot_id][0] += 0.02;
+	  speed[robot_id][1] += 0.02;
 	} else {
-	//printf("my pos: %g %g\n", my_position[0], my_position[1]);
         	           double rel_dist_migr_x = (migr[0]-my_position[0]);
         	           double rel_dist_migr_y = (migr[1]-my_position[1]);
         	           
         	           limitd(&rel_dist_migr_x,5);
         	           limitd(&rel_dist_migr_y,5);
-	
+            	
+            	// Addition of correction towards migratory target
 		speed[robot_id][0] += rel_dist_migr_x * MIGRATION_WEIGHT;
 		speed[robot_id][1] -= rel_dist_migr_y * MIGRATION_WEIGHT; // y axis of webots is inverted
 	}
@@ -295,12 +294,14 @@ void process_received_ping_messages(void) {
 	int other_robot_id;
 	
 	while (wb_receiver_get_queue_length(receiver) > 0) {
+            	// Data acquisition of ping signal
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
 		double y = message_direction[2];
 		double x = message_direction[0];
-
+		
+		// Data processing for range and bearing
 		theta =	-atan2(y,x);
 		theta = theta + my_position[2]; // find the relative theta;
 		range = sqrt((1/message_rssi));
@@ -315,7 +316,6 @@ void process_received_ping_messages(void) {
 		relative_pos[other_robot_id][0] = range*cos(theta);  // relative x pos
 		relative_pos[other_robot_id][1] = -1.0 * range*sin(theta);   // relative y pos
 
-		//printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
                   
 		relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
 		relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);		
@@ -328,9 +328,11 @@ void process_received_ping_messages(void) {
 // the main function
 int main(){ 
 	int msl, msr;			// Wheel speeds
+	
 	/*Webots 2018b*/
 	float msl_w, msr_w;
 	/*Webots 2018b*/
+	
 	int bmsl, bmsr, sum_sensors;	// Braitenberg parameters
 	int i;				// Loop counter
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
@@ -365,12 +367,8 @@ int main(){
 
 		// Adapt Braitenberg values (empirical tests)
 		bmsl/=MIN_SENS; bmsr/=MIN_SENS;
-		//if (robot_id == 1) {
-  		//printf("bmsl = %d\n", bmsl);
-  		//}
-		//bmsl+=100; bmsr+=50;
 		bmsl+=125; bmsr+=120;
-		//bmsl*=10; bmsr*=10;
+
               
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
@@ -379,6 +377,7 @@ int main(){
 		prev_my_position[0] = my_position[0];
 		prev_my_position[1] = my_position[1];
 		
+		// Get position from wheel speeds
 		update_self_motion(msl,msr);
 		
 		process_received_ping_messages();
@@ -416,4 +415,3 @@ int main(){
 		wb_robot_step(TIME_STEP);
 	}
 }  
-  
