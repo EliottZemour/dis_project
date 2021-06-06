@@ -87,5 +87,5 @@ Note that the `linear_algebra.c/h` files are helper files for the Kalman algorit
 
 The code for the PSO part can be found at PSO > controllers. It is divided in three files that communicate with each other.
 The `pso.c` file implements the main PSO loop (initialize swarm, move particles, evaluate, find best particle). The supervisor `pso_obstacle_super.c` repositions the particles at the initial position at each iteration, then send candidate solutions to robots (Reynolds rules weights & thresholds), and calculates fitness. 
-The controller `pso_obstacle_controller.c` receives the Reynold weights from the supervisor, and run the controller with those weights.
+The controller `pso_obstacle_controller.c` receives the Reynold weights from the supervisor, and runs the controller with those weights.
 
