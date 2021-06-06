@@ -54,6 +54,49 @@ PSO/
     
 ```
 
+```
+Initial_Material/
+    ├─ controllers/
+       ├─ localization/
+         ├─ localization_controller.c
+         ├─ localization_super.c
+         ├─ odometry.c
+         ├─ odometry.h
+         ├─ kalman.c
+         ├─ kalman.h
+         ├─ trajectories.c
+         ├─ trajectories.h
+         ├─ linear_algebra.c
+         ├─ linear_algebra.h
+       ├─ flocking/
+          ├─ flocking_controller.c
+          ├─ flocking_super.c
+       ├─ formation/
+          ├─ formation_controller.c
+          ├─ formation_super.c
+       ├─ crossing/
+          ├─ crossing_left_controller.c
+          ├─ crossing_left_super.c
+          ├─ crossing_right_controller.c
+          ├─ crossing_right_super.c
+    ├─ worlds/
+       ├─ localization.wbt
+       ├─ crossing.wbt
+       ├─ obstacle.wbt
+       ├─ crossing-test.wbt
+       ├─ obstacle-test.wbt
+    
+PSO/
+    ├─ controllers/
+    │  ├─ pso_obstacle_super.c
+    │  ├─ pso_obstacle_controller
+    │  ├─ pso.c
+    │  ├─ pso.h
+    ├─ worlds/
+    │  ├─ obstacle-test-pso.wbt
+    
+```
+
 
 
 ## Part I: Localization Techniques for Individual Robots
