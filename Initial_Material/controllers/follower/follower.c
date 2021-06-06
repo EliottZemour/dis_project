@@ -1,13 +1,3 @@
-/*****************************************************************************/
-/* File:         follower.c                                                  */
-/* Version:      3.0                                                         */
-/* Date:         02-Nov-05 -- 06-Oct-2015                                    */
-/* Description:  Formation movement with E-Pucks                             */
-/*                                                                           */
-/* Author: 	 22-Oct-04 by nikolaus.correll@epfl.ch                       */
-/* improved by Ali Marjovi 20-Oct-2014 and 06-Oct 2015			     */
-/*****************************************************************************/
-
 #include <stdio.h>
 #include <math.h>
 
@@ -21,6 +11,8 @@
 #include <webots/receiver.h>
 
 #define NB_SENSORS           8
+#define MIN_SENS          150     // Minimum sensibility value
+#define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         800     // Maximum speed
 /* Formation flocking parameters */
 #define D                    0.20      // Distance between robots
@@ -36,7 +28,7 @@ WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 
-int Interconn[16] = {-5,-15,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,3};	//Braitenberg matrix for obstacle avoidance
+int Interconn[16] = {15,5,-20,6,4,6,3,5,4,4,6,-18,-15,-5,5,13};	//Braitenberg matrix for obstacle avoidance
 WbDeviceTag ds[NB_SENSORS];           // Handle for the infrared distance sensors
 WbDeviceTag receiver;                 // Handle for the receiver node for range and bearing information
 
@@ -54,6 +46,9 @@ float theta;
 float leader_range = 0.0;
 float leader_bearing = 0.0;
 float leader_orientation = 0.0;
+
+float new_leader_range, new_leader_bearing, new_leader_orientation; // received leader range and bearing
+	
 static void reset(void) {
 	wb_robot_init();
 
@@ -128,10 +123,10 @@ void update_self_motion(int msl, int msr) {
 /*
  * Calculates the wheel speeds according the goal range and bearing
  */
-void compute_wheel_speeds(int nsl, int nsr, int *msl, int *msr) {
+void compute_wheel_speeds(int *msl, int *msr) {
 	// Define constants
-	float Ku = 5;
-	float Kw = 10.0;
+	float Ku = 2.0;
+	float Kw = 5.0;
 	float Kb = 1.0;
 
 
@@ -153,8 +148,8 @@ void compute_wheel_speeds(int nsl, int nsr, int *msl, int *msr) {
 	// Convert to wheel speeds!
 	*msl = (int)((u - AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
 	*msr = (int)((u + AXLE_LENGTH*w/2.0) / (SPEED_UNIT_RADS * WHEEL_RADIUS));
-    //limit(msl, MAX_SPEED);
-	//limit(msr, MAX_SPEED);
+           limit(msl, MAX_SPEED);
+	limit(msr, MAX_SPEED);
 }
 
 int main(){
@@ -167,7 +162,6 @@ int main(){
 	double message_rssi;             // Received Signal Strength indicator
 	float leader_heading_init;       // Initial leader heading
 	
-	float new_leader_range, new_leader_bearing, new_leader_orientation; // received leader range and bearing
 	
            char *rbbuffer;                  // Buffer for message reception
            
@@ -255,7 +249,7 @@ int main(){
             		double x = message_direction[0];
             		range = sqrt((1/message_rssi));
             		theta =	-atan2(y,x);
-            		theta = M_PI/2 - theta; // find the relative theta;
+            		theta =theta + my_position[2]; // find the relative theta;
             		if (theta > M_PI) theta -= 2.0*M_PI;
             		if (theta < -M_PI) theta += 2.0 * M_PI;
               		
@@ -272,12 +266,14 @@ int main(){
 		update_leader_measurement(new_leader_range, new_leader_bearing, new_leader_orientation);
 
 
-		compute_wheel_speeds(0, 0, &msl, &msr);
-                      
+		compute_wheel_speeds(&msl, &msr);
+                 
+
                       // Braitenberg
 		msl += bmsl;
 		msr += bmsr;
-
+		limit(&msl,MAX_SPEED);
+        	           limit(&msr,MAX_SPEED);
 		/*Webots 2018b*/
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
@@ -291,4 +287,3 @@ int main(){
 		wb_robot_step(64);               // Executing the simulation for 64ms
 	}
 }  
-  
