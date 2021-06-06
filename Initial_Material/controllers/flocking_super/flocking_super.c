@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -43,8 +42,6 @@ float o_metric, dfl_metric, v_metric, fit_cluster; // The elements to multiply f
  */
 void reset(void) {
 	wb_robot_init();
-
-	//receiver = wb_robot_get_device("receiver");
 	
 	char rob[7] = "epuck0";
 	int i;
@@ -80,6 +77,13 @@ void controller_print_log(double time)
 }
 }
 
+
+
+/*
+ * Metric related functions.
+ */
+ 
+// Makes a matric for pairing the robots
 void compute_pair_matrix() {
     int i,j,k;
     k = 0;
@@ -92,6 +96,7 @@ void compute_pair_matrix() {
     }
 }
 
+// Calculates the center of the flock formation
 void compute_flock_center() {
     int i;
     float n = (float) FLOCK_SIZE;
@@ -102,6 +107,8 @@ void compute_flock_center() {
     center[0] /= n;
     center[1] /= n;
 }
+
+// Calculates the orientation part of the metric
 
 void compute_orient_metric() {
       o_metric = 0.0;
@@ -114,15 +121,12 @@ void compute_orient_metric() {
           Hdiff = ( loc[i][2] -  loc[j][2] );
           Hdiff = Hdiff >  M_PI ? Hdiff-2*M_PI : Hdiff; 
           Hdiff = Hdiff < -M_PI ? Hdiff+2*M_PI : Hdiff; 
-          //printf("Hdiff/pi  = %f\n", fabsf(Hdiff)/M_PI);
           o_metric += fabsf(Hdiff)/M_PI;
       }
-      //printf("npairs = %f\n", n);
-      //printf("o_metric = %f\n", o_metric);
-      //printf("sum/npairs = %f\n", (o_metric/(float) N_PAIRS));
       o_metric = 1 - o_metric/n;  
 }
 
+// Calculates the distance part of the metric
 void compute_dist_metric() {
       dfl_metric = 0.0;
       int i,j,k;
@@ -141,17 +145,15 @@ void compute_dist_metric() {
           delta_x = sqrtf(powf(loc[i][0]-loc[j][0],2.0) + powf(loc[i][1]-loc[j][1],2.0));
           dfl_metric += MIN(delta_x/0.14, 1/powf(1-0.14+delta_x,2.0))/n;
       }  
-      //printf("denominator = %f\n", denominator);
       dfl_metric /= denominator;
 }
 
 
+// Calculates the velocity part of the metric
 void compute_veloc_metric() {
       v_metric = (sqrtf(powf(center_old[0]-center[0],2.0) + powf(center_old[1]-center[1],2.0)));
       v_metric /= d_max;
 }
-
-
 
 
 /*
@@ -159,47 +161,50 @@ void compute_veloc_metric() {
  */
  
 int main(int argc, char *args[]) {
-	int i;	// Index
-           //printf("just got here");
-            
+	int i;	// Index            
 	t = 0;
 	offset = 0.0;
 	migrx = 0;
 	migrz = -10;
+	
 	//migration goal point comes from the controller arguments. It is defined in the world-file, under "controllerArgs" of the supervisor.
 	printf("Migratory instinct : (%f, %f)\n", migrx, migrz);
+	
+	// Creation of the log file
            controller_init_log("flocking_metric.csv");
 	
 	compute_pair_matrix();
+	
 	reset();
           
-	
-		
 	for(;;) {
 		wb_robot_step(TIME_STEP);
-		//if (t % 16 == 0) {
 			center_old[0] = center[0];
 			center_old[1] = center[1];
 			for (i=0;i<FLOCK_SIZE;i++) {
+            			//Get data from Scene Tree
 				loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[0]; // X
 				loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[2]; // Z
 				loc[i][2] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3]; // THETA
 			
 			}
+			//Intermediate computations
 			compute_flock_center();
 			compute_orient_metric();
 			compute_dist_metric();
 			compute_veloc_metric();
 			
-			/*
+			// Final computation
 			fit_cluster = o_metric * dfl_metric * v_metric;
+			
+			/* Print commands to check individual data
 			printf("==========================================\n");
 			printf("metric v[t] = %f\n", v_metric);
 			printf("metric dfl[t] = %f\n", dfl_metric);
 			printf("metric o[t] = %f\n", o_metric);
 			printf("time:%d, Topology Performance: %f\n", t, fit_cluster);	
 			*/		
-		//}
+		
                 		controller_print_log(t/1000.0);
 		t += TIME_STEP;
 	}
