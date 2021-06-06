@@ -190,8 +190,9 @@ int main(int argc, char *args[]) {
 			compute_dist_metric();
 			compute_veloc_metric();
 			
-			/*
+			
 			fit_cluster = o_metric * dfl_metric * v_metric;
+			/*
 			printf("==========================================\n");
 			printf("metric v[t] = %f\n", v_metric);
 			printf("metric dfl[t] = %f\n", dfl_metric);

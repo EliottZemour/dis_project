@@ -230,7 +230,7 @@ void reynolds_rules() {
     if (k != robot_id) {
       if (sqrt(pow(relative_pos[k][0],2)+pow(relative_pos[k][1],2)) < RULE2_THRESHOLD) {
         for (j = 0; j < 2; j++) {
-            dispersion[j] -= 1.0/relative_pos[k][j];
+            dispersion[j] -= 1/relative_pos[k][j];
         }
       }
     }
